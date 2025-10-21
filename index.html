@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu Mercado</title>
+
+    <meta property="og:title" content="Meu Mercado" />
+    <meta property="og:type" content="website" />
+    <meta property="og:description" content="Sua lista de compras inteligente com comparador de preços e otimização." />
+    <meta property="og:image" content="https://meumercado.pages.dev/01.png" />
+
+
+    <link rel="icon" href="01.png" type="image/png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-color: #212121;
+            --card-color: #2c2c2c;
+            --text-color: #f0f0f0;
+            --secondary-text-color: #a0a0a0;
+            --primary-color: #ffc107;
+            --green-highlight: #4CAF50;
+            --danger-color: #f44336;
+            --yellow-sync-color: #ffc107;
+            --border-radius: 12px;
+            --input-bg-color: #383838;
+            --menu-width: 250px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* --- TELA DE LOGIN --- */
+        #auth-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .auth-box {
+            background-color: var(--card-color);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .auth-box h2 {
+            color: var(--primary-color);
+            margin-bottom: 25px;
+        }
+        .auth-input {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--input-bg-color);
+            border: 1px solid #444;
+            border-radius: 8px;
+            color: var(--text-color);
+            font-size: 1rem;
+            margin-bottom: 15px;
+        }
+        .password-container {
+            position: relative;
+            margin-bottom: 15px;
+        }
+        .password-container .auth-input {
+            margin-bottom: 0;
+            padding-right: 40px; /* Espaço para o ícone */
+        }
+        #togglePassword {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: var(--secondary-text-color);
+        }
+        .auth-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .auth-buttons .custom-btn {
+            flex-grow: 1;
+        }
+        #auth-message {
+            color: var(--danger-color);
+            min-height: 20px;
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+
+        /* Ocultar app-container por padrão */
+        #app-container {
+            display: none;
+        }
+
+        /* --- HEADER --- */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--input-bg-color);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: var(--bg-color);
+        }
+        .header .title img {
+            height: 30px;
+            width: auto;
+            margin-right: 10px;
+            border-radius: 5px;
+        }
+        .header .menu-icon { font-size: 1.5rem; cursor: pointer; color: var(--primary-color); padding: 5px; }
+        .header .title { font-size: 1.25rem; font-weight: bold; display: flex; align-items: center; white-space: nowrap; position: absolute; left: 50%; transform: translateX(-50%); }
+        .header .title i { margin-right: 8px; color: var(--primary-color); }
+
+        /* --- SIDE MENU & OVERLAY --- */
+        .side-menu { height: 100%; width: 0; position: fixed; z-index: 1001; top: 0; left: 0; background-color: var(--card-color); overflow-x: hidden; transition: 0.3s; padding-top: 60px; box-shadow: 2px 0 10px rgba(0,0,0,0.5); }
+        .side-menu.open { width: var(--menu-width); }
+        .side-menu .close-btn { position: absolute; top: 15px; right: 25px; font-size: 2rem; color: var(--primary-color); cursor: pointer; line-height: 1; }
+        .side-menu a { padding: 15px 20px; text-decoration: none; font-size: 1.1rem; color: var(--text-color); display: block; transition: 0.3s; border-bottom: 1px solid var(--input-bg-color); }
+        .side-menu a:hover { background-color: #575757; color: var(--primary-color); }
+        .side-menu a i { color: var(--primary-color); width: 20px; text-align: center; margin-right: 10px; }
+        #page-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 1000; display: none; transition: opacity 0.3s; }
+        #page-overlay.show { display: block; }
+
+        /* --- CONTEÚDO PRINCIPAL --- */
+        .container {
+            padding: 0;
+            max-width: 100%;
+            margin: 0;
+            flex-grow: 1;
+        }
+
+        .section {
+            background-color: var(--card-color);
+            padding: 20px 16px;
+            border-radius: var(--border-radius);
+            margin: 0 0 24px 0;
+        }
+
+        .shopping-list-section {
+            padding: 0;
+            border-radius: 0;
+        }
+
+        .shopping-list-section .section-header { padding: 20px 16px 16px 16px; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .section-header h2 { margin: 0; font-size: 1.5rem; color: var(--primary-color); }
+        .section-header .clear-btn { background: none; border: none; color: var(--danger-color); cursor: pointer; font-size: 1.2rem; transition: color 0.3s; padding: 5px; }
+        .section-header .clear-btn:hover { color: #ff7961; }
+
+        /* --- BOTÕES --- */
+        .custom-btn { background-color: var(--primary-color); color: var(--bg-color); border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: bold; padding: 10px 15px; transition: background-color 0.3s; }
+        .custom-btn:hover { background-color: #ffd54f; }
+        .custom-btn.secondary { background-color: var(--input-bg-color); color: var(--text-color); }
+        .custom-btn.secondary:hover { background-color: #555; }
+        .button-group { display: flex; gap: 10px; }
+        .button-group .custom-btn, .button-group a { border-radius: 8px; }
+
+        /* --- TABELA E PREÇOS --- */
+        .table-scroll-wrapper { overflow-x: auto; width: 100%; }
+        .shopping-list-table { width: auto; min-width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .shopping-list-table th, .shopping-list-table td { padding: 12px 8px; text-align: left; border-bottom: 1px solid #4a4a4a; vertical-align: middle; }
+        .shopping-list-table th { font-size: 0.8rem; color: var(--secondary-text-color); text-transform: uppercase; }
+        .shopping-list-table th:first-child, .shopping-list-table td:first-child { padding-left: 16px; }
+        .shopping-list-table th:last-child, .shopping-list-table td:last-child { padding-right: 16px; }
+        .price-cell { padding: 0 !important; width: 80px; text-align: right; }
+        .price-cell input { width: 100%; padding: 12px 8px; text-align: right; background-color: var(--card-color); color: var(--text-color); border: none; border-radius: 0 !important; }
+        .price-cell input.default-price { color: var(--secondary-text-color) !important; }
+        .price-cell:first-of-type { border-right: 1px solid var(--input-bg-color); }
+        .item-name-input { width: 100%; background: none; border: none; color: var(--text-color); font-size: 1rem; font-family: inherit; padding: 4px 0; border-radius: 4px; resize: none; overflow-y: hidden; line-height: 1.4; transition: all 0.2s ease-in-out; }
+        .item-name-input:focus { outline: none; background-color: var(--input-bg-color); }
+        .shopping-list-table .action-btn { background: none; border: none; color: var(--danger-color); cursor: pointer; font-size: 1.2rem; transition: color 0.3s; padding: 0; }
+        .shopping-list-table .action-btn:hover { color: #ff7961; }
+        .shopping-list-table .action-btn.add { color: var(--green-highlight); }
+        .shopping-list-table .action-btn.add:hover { color: #81c784; }
+        .cheapest-price { color: var(--green-highlight) !important; font-weight: bold; }
+        .cheapest-price::before { content: "✔ "; }
+        .equal-price { color: var(--primary-color) !important; font-weight: bold; }
+        .shopping-list-table td input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+        .purchased .item-name-input, .purchased input[type="text"] { text-decoration: line-through; color: var(--secondary-text-color); }
+
+        /* --- SEÇÃO DO EMBED --- */
+        .iframe-container { position: relative; border-radius: var(--border-radius); overflow: hidden; padding-top: 200%; }
+        .iframe-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+        #iframe-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); display: none; justify-content: center; align-items: center; flex-direction: column; gap: 15px; z-index: 5; color: var(--text-color); text-align: center; }
+        .loader { border: 4px solid var(--input-bg-color); border-top: 4px solid var(--primary-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #comparator-section { padding-top: 0; padding-bottom: 0; margin-bottom: 24px; }
+        .collapsible-header { cursor: pointer; padding: 20px 16px; display: flex; justify-content: space-between; align-items: center; }
+        .collapsible-header h2 { margin: 0; font-size: 1.5rem; color: var(--primary-color); }
+        .collapsible-header .fas.fa-chevron-down { transition: transform 0.3s ease; color: var(--secondary-text-color); }
+        .collapsible-header.active .fas.fa-chevron-down { transform: rotate(180deg); }
+        .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-out; padding: 0 16px; }
+        .collapsible-content.expanded { max-height: 100vh; padding-bottom: 20px; }
+        .footer { text-align: center; padding: 16px; color: var(--secondary-text-color); font-size: 0.875rem; background-color: #282828; margin-top: auto; width: 100%; }
+
+        #sync-status-indicator { 
+            width: 12px; 
+            height: 12px; 
+            border-radius: 50%; 
+            background-color: var(--green-highlight); 
+            z-index: 11; 
+            transition: background-color 0.5s ease; 
+            flex-shrink: 0;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        #username-display {
+            color: var(--secondary-text-color);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #sync-status-indicator.status-syncing { background-color: var(--yellow-sync-color); }
+        #sync-status-indicator.status-error { background-color: var(--danger-color); }
+        #sync-status-indicator.status-saved { background-color: var(--green-highlight); }
+        #sync-status-indicator.status-offline { background-color: #7986cb; }
+
+        /* --- Autocomplete --- */
+        #autocomplete-suggestions {
+            position: absolute;
+            background-color: var(--input-bg-color);
+            border: 1px solid var(--primary-color);
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            z-index: 1002; /* Mais alto que o overlay do menu */
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .suggestion-item {
+            padding: 8px 10px;
+            cursor: pointer;
+            color: var(--text-color);
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            /* NOVO: Linha cinza entre itens */
+            border-bottom: 1px solid #666; 
+        }
+        .suggestion-item:last-child {
+            /* Remove a borda do último item para não duplicar o contorno */
+            border-bottom: none; 
+        }
+        .suggestion-item:hover {
+            background-color: #555;
+        }
+
+        @media (min-width: 768px) { .shopping-list-table colgroup col:nth-child(2) { width: 450px; } }
+        @media (min-width: 1024px) { .shopping-list-table colgroup col:nth-child(2) { width: 550px; } }
+    </style>
+</head>
+<body>
+
+    <div id="auth-container">
+        <div class="auth-box">
+            <h2><i class="fas fa-lock"></i> Acesso Seguro</h2>
+            <input type="text" id="username" class="auth-input" placeholder="Nome de usuário" autocomplete="username">
+            <div class="password-container">
+                <input type="password" id="password" class="auth-input" placeholder="Senha" autocomplete="current-password">
+                <i class="fas fa-eye" id="togglePassword"></i>
+            </div>
+            <div class="auth-buttons">
+                <button class="custom-btn" onclick="handleLogin()">Entrar</button>
+                <button class="custom-btn secondary" onclick="handleRegister()">Cadastrar</button>
+            </div>
+            <p id="auth-message"></p>
+        </div>
+    </div>
+
+    <div id="app-container">
+        <div id="side-menu" class="side-menu">
+            <a href="javascript:void(0)" class="close-btn" onclick="closeNav()">&times;</a>
+            <a href="#"><i class="fas fa-list-check"></i> Minha Lista</a>
+            <a href="#"><i class="fas fa-history"></i> Histórico</a>
+            <a href="#"><i class="fas fa-tags"></i> Ofertas</a>
+            <a href="javascript:void(0)" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Sair</a>
+        </div>
+        <div id="page-overlay" onclick="closeNav()"></div>
+
+        <div id="main-content-wrapper">
+            <div class="header">
+                <span class="menu-icon" onclick="openNav()">&#9776;</span>
+                <span class="title">
+                    <img src="01.png" alt="Ícone">
+                    Meu Mercado
+                </span>
+
+                <div class="header-right">
+                    <span id="username-display"></span>
+                    <div id="sync-status-indicator"></div>
+                </div>
+                </div>
+
+            <div class="container">
+                <div class="section shopping-list-section">
+                    <div class="section-header">
+                        <h2>Meus Itens</h2>
+                        <button class="clear-btn" onclick="clearList()" title="Limpar toda a lista">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+
+                    <div class="table-scroll-wrapper">
+                        <table class="shopping-list-table">
+                            <colgroup>
+                                <col style="width: 40px;"> <col style="width: 250px;"> <col style="width: 80px;"> <col style="width: 80px;"> <col style="width: 45px;"> </colgroup>
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-check"></i></th>
+                                    <th>Item</th>
+                                    <th>Shibata</th>
+                                    <th>Nagumo</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="shopping-list-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="section" id="comparator-section">
+                    <div class="section-header collapsible-header" onclick="toggleComparator()">
+                        <h2>Comparador de Preços</h2>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div id="comparator-content" class="collapsible-content">
+                        <div id="iframe-wrapper" class="iframe-container">
+                            <div id="iframe-overlay">
+                                <div class="loader"></div>
+                                <span>Acordando o comparador...</span>
+                            </div>
+                            <iframe id="streamlit-app" src="https://precosmercados.streamlit.app/?embed=true&minimal=true"></iframe>
+                        </div>
+                        <div class="button-group" style="margin-top: 16px;">
+                            <button class="custom-btn" onclick="wakeUpApp()" style="flex-grow: 1;">
+                                <i class="fas fa-sync-alt"></i> Ativar / Atualizar
+                            </button>
+                            <a href="https://precosmercados.streamlit.app/" target="_blank" rel="noopener noreferrer" class="custom-btn secondary" style="flex-grow: 1; text-align: center; text-decoration: none; line-height: 1.8;">
+                                <i class="fas fa-external-link-alt"></i> Abrir em Nova Guia
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="footer">
+                Feito para facilitar suas compras. 🛒💡
+            </footer>
+        </div>
+    </div>
+
+    <div id="autocomplete-suggestions"></div>
+
+    <script>
+        // --- GERENCIAMENTO DE AUTENTICAÇÃO ---
+        const authContainer = document.getElementById('auth-container');
+        const appContainer = document.getElementById('app-container');
+        const authMessage = document.getElementById('auth-message');
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+
+        togglePassword.addEventListener('click', function () {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            this.classList.toggle('fa-eye-slash');
+        });
+        
+        passwordInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                handleLogin();
+            }
+        });
+
+        function showApp() {
+            authContainer.style.display = 'none';
+            appContainer.style.display = 'block';
+
+            const username = localStorage.getItem('currentUser');
+            const usernameDisplay = document.getElementById('username-display');
+            if (username && usernameDisplay) {
+                usernameDisplay.innerHTML = `<i class="fas fa-user"></i> ${username}`;
+            }
+
+            loadList();
+            startPolling(); // Inicia a verificação contínua por atualizações
+        }
+
+        function showAuth(message = '', isError = false) {
+            authContainer.style.display = 'flex';
+            appContainer.style.display = 'none';
+            authMessage.textContent = message;
+            authMessage.style.color = isError ? 'var(--danger-color)' : 'var(--green-highlight)';
+        }
+
+        async function handleLogin() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            if (!username || !password) {
+                showAuth('Por favor, preencha usuário e senha.', true);
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.message || 'Erro ao fazer login.');
+                }
+
+                localStorage.setItem('authToken', data.token);
+                localStorage.setItem('currentUser', username); 
+                showApp();
+            } catch (error) {
+                showAuth(error.message, true);
+            }
+        }
+
+        async function handleRegister() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            if (!username || !password) {
+                showAuth('Por favor, preencha usuário e senha para cadastrar.', true);
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await response.json();
+                 if (!response.ok) {
+                    throw new Error(data.message || 'Erro ao cadastrar.');
+                }
+                showAuth(data.message, false);
+            } catch (error) {
+                 showAuth(error.message, true);
+            }
+        }
+
+        async function handleLogout() {
+            stopPolling(); // Para a verificação contínua ao sair
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                try {
+                    await fetch('/api/logout', {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                } catch (error) {
+                    console.error("Logout failed, but proceeding.", error);
+                }
+            }
+            localStorage.removeItem('authToken');
+            // ATUALIZADO: Remove chaves de usuário específicas ao sair
+            const username = localStorage.getItem('currentUser');
+            if (username) {
+                 localStorage.removeItem(`shoppingList_${username}`);
+                 localStorage.removeItem(`offlineList_${username}`);
+                 localStorage.removeItem(`pendingDeletes_${username}`);
+            }
+            localStorage.removeItem('currentUser'); // Deve ser removido por último
+            location.reload();
+        }
+
+        function getAuthHeaders() {
+            const token = localStorage.getItem('authToken');
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            };
+        }
+
+        function openNav() { document.getElementById("side-menu").classList.add('open'); document.getElementById("page-overlay").classList.add('show'); }
+        function closeNav() { document.getElementById("side-menu").classList.remove('open'); document.getElementById("page-overlay").classList.remove('show'); }
+        document.addEventListener('keydown', (event) => { if (event.key === "Escape") closeNav(); });
+
+        function toggleComparator() {
+            document.querySelector('.collapsible-header').classList.toggle('active');
+            document.getElementById('comparator-content').classList.toggle('expanded');
+        }
+
+        // --- Variáveis de Sincronização e Estado ---
+        const tableBody = document.getElementById('shopping-list-body');
+        const statusIndicator = document.getElementById('sync-status-indicator');
+        const autocompleteSuggestions = document.getElementById('autocomplete-suggestions'); // Variável para o Autocomplete
+        let saveTimeout;
+        let syncState = 'saved';
+        let isOnline = navigator.onLine;
+        let pollingIntervalId = null; // ID para o intervalo do polling
+        
+        // --- Autocomplete Item List (Loaded from itens.json) ---
+        let itensList = [];
+        
+        async function carregarItens() {
+            try {
+                // ALTERADO: Removido o cache-buster (timestamp) para permitir que o Service Worker
+                // use a estratégia Stale-While-Revalidate (SWR) ou sirva o cache offline.
+                const response = await fetch(`itens.json`); 
+                if (!response.ok) {
+                    // Se a rede falhar E não houver cache (primeiro acesso offline), 
+                    // a promise pode ser rejeitada ou o status ser 503 (offline).
+                    // O SW deve retornar a versão em cache. Se chegou aqui, 
+                    // significa que falhou na rede E o SW não tinha cache.
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                itensList = await response.json();
+                console.log(`Itens de Autocomplete carregados: ${itensList.length}`);
+            } catch (error) {
+                console.error('Falha ao carregar itens.json para autocomplete (Pode ser o primeiro acesso offline):', error);
+                // Fallback to empty list
+                itensList = [];
+            }
+        }
+        
+        let currentActiveInput = null; // Input ativo para o Autocomplete
+        
+        // --- FUNÇÃO ADICIONADA: Normaliza string para comparação sem acentos ---
+        function normalizeString(str) {
+            return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        }
+
+        function setSyncStatus(newState) {
+            syncState = newState;
+            statusIndicator.className = `status-${newState}`;
+            if (newState === 'error') {
+                setTimeout(() => { if (syncState === 'error') setSyncStatus('offline'); }, 3000);
+            }
+        }
+        
+        // --- LÓGICA DE POLLING (SINCRONIZAÇÃO CONTÍNUA) ---
+        function stopPolling() {
+            if (pollingIntervalId) {
+                clearInterval(pollingIntervalId);
+                pollingIntervalId = null;
+            }
+        }
+
+        function startPolling() {
+            stopPolling(); // Garante que não haja múltiplos intervalos rodando
+            pollingIntervalId = setInterval(pollForChanges, 4000); // Verifica por mudanças a cada 4 segundos
+        }
+        
+        async function pollForChanges() {
+            const activeEl = document.activeElement;
+
+            // Pula o polling se:
+            // 1. Está offline
+            // 2. A aba está oculta
+            // 3. Uma sincronização (saveList) já está em andamento (CRUCIAL)
+            // 4. O usuário está digitando ativamente na tabela
+            if (!isOnline || 
+                document.hidden || 
+                syncState === 'syncing' || // <-- CORREÇÃO DA RACE CONDITION (Preço sumindo)
+                (activeEl && ['INPUT', 'TEXTAREA'].includes(activeEl.tagName) && tableBody.contains(activeEl))) 
+            {
+                return;
+            }
+
+
+            try {
+                const response = await fetch('/api/list', { headers: getAuthHeaders() });
+                if (response.status === 401) return handleLogout();
+                if (!response.ok) return;
+
+                const remoteItems = await response.json();
+                const localItems = getCurrentLocalItems();
+
+                // Compara a lista remota com a local. Se forem diferentes, atualiza a tela.
+                // Esta comparação agora inclui IDs, então é mais robusta.
+                if (JSON.stringify(remoteItems) !== JSON.stringify(localItems)) {
+                    redrawTable(remoteItems, false); // Redesenha a tabela sem focar no campo de novo item
+                }
+            } catch (error) {
+                // Falha silenciosa para não poluir o console com erros de rede
+            }
+        }
+
+        function debounce(func, delay) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), delay);
+            };
+        }
+
+        function getCurrentLocalItems() {
+            const items = [];
+            document.querySelectorAll('#shopping-list-body tr:not(.add-item-row)').forEach(row => {
+                const name = row.cells[1].querySelector('textarea').value.trim();
+                if (name) {
+                    items.push({
+                        // ATUALIZADO: Inclui o ID do item
+                        id: row.dataset.id ? parseInt(row.dataset.id) : null,
+                        name: name,
+                        priceShibata: row.cells[2].querySelector('input').value || 'R$ 0,00',
+                        priceNagumo: row.cells[3].querySelector('input').value || 'R$ 0,00',
+                        purchased: row.classList.contains('purchased')
+                    });
+                }
+            });
+            return items;
+        }
+
+        // --- LÓGICA DE SINCRONIZAÇÃO E CACHE OFFLINE ---
+        async function saveList() {
+            const items = getCurrentLocalItems();
+            const username = localStorage.getItem('currentUser');
+            if (!username) return;
+            
+            // ATUALIZADO: Busca exclusões pendentes
+            const pendingDeletes = JSON.parse(localStorage.getItem(`pendingDeletes_${username}`) || '[]');
+
+            if (!isOnline) {
+                setSyncStatus('offline');
+                console.log("Offline: Salvando alterações localmente.");
+                // Salva os itens modificados
+                localStorage.setItem(`offlineList_${username}`, JSON.stringify(items));
+                // As exclusões pendentes já estão salvas no localStorage, então não faz mais nada
+                return;
+            }
+            
+            // CORREÇÃO: Define 'syncing' aqui, *antes* do await,
+            // para que o pollForChanges pare imediatamente.
+            setSyncStatus('syncing'); 
+            await saveListOnline(items, pendingDeletes);
+        }
+
+        async function saveListOnline(items, deletes = []) {
+            const username = localStorage.getItem('currentUser');
+            if (!username) return;
+
+            // 'syncing' já foi definido em saveList()
+            // setSyncStatus('syncing'); 
+            try {
+                const response = await fetch('/api/list', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    // ATUALIZADO: Envia um objeto com 'items' e 'deletes'
+                    body: JSON.stringify({ items: items, deletes: deletes })
+                });
+                if (response.status === 401) return handleLogout();
+                if (!response.ok) throw new Error('Falha ao salvar no servidor.');
+                
+                // ATUALIZADO: O servidor agora retorna a lista mesclada e autoritativa
+                const mergedItems = await response.json();
+
+                setSyncStatus('saved');
+                
+                // Salva a lista autoritativa (com novos IDs) no cache principal
+                localStorage.setItem(`shoppingList_${username}`, JSON.stringify(mergedItems));
+                
+                // Limpa as pendências offline (itens e deletes) APÓS o sucesso
+                localStorage.removeItem(`offlineList_${username}`);
+                localStorage.removeItem(`pendingDeletes_${username}`);
+
+                // ATUALIZADO: Redesenha a tabela com a lista do servidor
+                // Isso é crucial para que os novos itens recebam seus IDs corretos no DOM
+                
+                // CORREÇÃO: Não redesenha a tabela se o usuário estiver
+                // ativamente digitando em um campo, para evitar perda de dados/foco.
+                const activeEl = document.activeElement;
+                const isTypingInTable = activeEl && ['INPUT', 'TEXTAREA'].includes(activeEl.tagName) && tableBody.contains(activeEl);
+
+                if (!isTypingInTable) {
+                    // Passa 'false' para não roubar o foco para o campo "novo item"
+                    redrawTable(mergedItems, false); 
+                } else {
+                    // O usuário está digitando. Não redesenhe agora.
+                    // A lista em cache foi atualizada, o próximo
+                    // 'pollForChanges' (quando o usuário parar de digitar) 
+                    // vai sincronizar a UI.
+                    console.log("Usuário digitando, adiando redesenho da UI.");
+                }
+
+            } catch (error) {
+                setSyncStatus('error');
+                console.error("Erro ao salvar online:", error);
+            }
+        }
+
+        // --- LÓGICA DE SINCRONIZAÇÃO DE ALTERAÇÕES OFFLINE (CORRIGIDO) ---
+        async function syncOfflineChanges() {
+            const username = localStorage.getItem('currentUser');
+            if (!username) return;
+            
+            const pendingItemsJSON = localStorage.getItem(`offlineList_${username}`);
+            // ATUALIZADO: Carrega também as exclusões pendentes
+            const pendingDeletes = JSON.parse(localStorage.getItem(`pendingDeletes_${username}`) || '[]');
+
+            // Se não há itens pendentes E não há exclusões pendentes, não faz nada
+            if (!pendingItemsJSON && pendingDeletes.length === 0) {
+                console.log("Nenhuma alteração offline para sincronizar.");
+                return;
+            }
+
+            console.log("Conectado. Sincronizando alterações pendentes...");
+            
+            try {
+                // Se 'pendingItemsJSON' existir, usa ele (é a fonte da verdade offline)
+                // Se não, usa a lista do cache (mas ainda pode haver 'pendingDeletes' para enviar)
+                const localOfflineItems = pendingItemsJSON
+                    ? JSON.parse(pendingItemsJSON)
+                    : JSON.parse(localStorage.getItem(`shoppingList_${username}`) || '[]');
+
+                // ATUALIZADO: Envia itens e exclusões pendentes
+                
+                // CORREÇÃO: Define 'syncing' aqui, *antes* do await
+                setSyncStatus('syncing');
+                await saveListOnline(localOfflineItems, pendingDeletes);
+                
+                // O 'redrawTable' agora é chamado DENTRO de 'saveListOnline'
+
+            } catch (error) {
+                console.error("Falha ao sincronizar as alterações offline:", error);
+                setSyncStatus('error');
+            }
+        }
+
+        async function loadList() {
+            const username = localStorage.getItem('currentUser');
+            if (!username) return;
+
+            const offlineKey = `offlineList_${username}`;
+            const cacheKey = `shoppingList_${username}`;
+            // ATUALIZADO: Carrega também as exclusões pendentes para definir o status
+            const pendingDeletes = JSON.parse(localStorage.getItem(`pendingDeletes_${username}`) || '[]');
+            const pendingOfflineItems = JSON.parse(localStorage.getItem(offlineKey));
+
+            if (pendingOfflineItems) {
+                console.log("Carregando lista com alterações offline pendentes.");
+                redrawTable(pendingOfflineItems);
+                setSyncStatus('offline');
+                return;
+            }
+
+            // Se não houver itens pendentes, mas houver exclusões pendentes, marca como offline
+            if (pendingDeletes.length > 0) {
+                setSyncStatus('offline');
+            }
+
+            if (!isOnline) {
+                console.log("Offline. Carregando lista do cache.");
+                // Se já não estiver 'offline' por causa de 'pendingDeletes'
+                if (syncState !== 'offline') setSyncStatus('offline');
+                const cachedItems = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+                redrawTable(cachedItems);
+                return;
+            }
+            
+            // Se não houver pendências, tenta sincronizar
+            if (syncState !== 'offline') setSyncStatus('syncing');
+            try {
+                const response = await fetch('/api/list', { headers: getAuthHeaders() });
+                if (response.status === 401) return handleLogout();
+                if (!response.ok) throw new Error('Falha ao buscar dados.');
+
+                const remoteItems = await response.json();
+                localStorage.setItem(cacheKey, JSON.stringify(remoteItems));
+                redrawTable(remoteItems, true);
+                // Só muda para 'saved' se não houver pendências offline
+                if (syncState !== 'offline') setSyncStatus('saved');
+            
+            } catch (error) { // <-- Erro de sintaxe estava aqui (corrigido anteriormente)
+                console.error('Erro ao buscar lista online, usando cache como fallback:', error);
+                setSyncStatus('offline'); 
+                const cachedItems = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+                redrawTable(cachedItems);
+            }
+        }
+
+        const debouncedSave = debounce(saveList, 1500);
+
+        // --- Funções de UI ---
+        function autoResizeTextarea(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+        }
+
+        // ##################################################################
+        // ## INÍCIO DA CORREÇÃO DE BUG (DUPLICAÇÃO DE ITEM)
+        // ##################################################################
+        tableBody.addEventListener('input', (event) => {
+            const target = event.target;
+            if (target.tagName.toLowerCase() === 'textarea') {
+                autoResizeTextarea(target);
+                
+                if (target.classList.contains('item-name-input')) { 
+                    currentActiveInput = target; 
+                    updateAutocompletePosition(); 
+                    debouncedHandleAutocomplete(event); 
+                }
+            }
+            
+            // CORREÇÃO: SÓ chama debouncedSave se NÃO for um campo da "add-item-row"
+            const row = target.closest('tr');
+            if (row && !row.classList.contains('add-item-row') && ['textarea', 'input'].includes(target.tagName.toLowerCase())) {
+                setSyncStatus('syncing');
+                debouncedSave();
+            }
+        });
+        
+        tableBody.addEventListener('focus', (event) => {
+            const target = event.target;
+            if (target.tagName.toLowerCase() === 'input' && target.type === 'text') {
+                setTimeout(() => {
+                    if (target.value !== '') {
+                        const valueLength = target.value.length;
+                        target.setSelectionRange(valueLength, valueLength);
+                    }
+                }, 1);
+            }
+            // Define o currentActiveInput e chama o autocomplete para QUALQUER campo de nome de item.
+            if (target.tagName.toLowerCase() === 'textarea' && target.classList.contains('item-name-input')) { 
+                currentActiveInput = target; 
+                handleAutocompleteInput(event); 
+            } else if (target.tagName.toLowerCase() === 'textarea') {
+                 // Para outros textareas (apenas por segurança), limpa o autocomplete
+                 closeAutocomplete();
+            }
+        }, true);
+
+        tableBody.addEventListener('blur', (event) => {
+            const target = event.target;
+            // CORREÇÃO: Pega a linha do evento
+            const row = target.closest('tr'); 
+            
+            // CORREÇÃO: SÓ formata/salva se for um campo de preço e NÃO for da "add-item-row"
+            if (target.tagName.toLowerCase() === 'input' && target.type === 'text' && row && !row.classList.contains('add-item-row')) {
+                formatCurrency(event.target);
+                comparePrices(event.target);
+                setSyncStatus('syncing'); // Define 'syncing' no blur
+                debouncedSave();
+            }
+
+            // Lógica do autocomplete (não muda)
+            if (event.target.tagName.toLowerCase() === 'textarea' && event.target.classList.contains('item-name-input')) {
+                setTimeout(() => {
+                    if (!autocompleteSuggestions.matches(':hover')) {
+                        closeAutocomplete();
+                    }
+                }, 50); 
+            }
+        }, true);
+        // ##################################################################
+        // ## FIM DA CORREÇÃO DE BUG
+        // ##################################################################
+        
+        
+        // --- Funções do Autocomplete ---
+        
+        function updateAutocompletePosition() {
+            if (currentActiveInput) { 
+                const rect = currentActiveInput.getBoundingClientRect();
+                autocompleteSuggestions.style.top = `${rect.bottom + window.scrollY}px`;
+                autocompleteSuggestions.style.left = `${rect.left + window.scrollX}px`;
+                // Garante que a largura seja igual à do campo de texto
+                autocompleteSuggestions.style.width = `${rect.width + 16}px`; // Adiciona padding horizontal
+            }
+        }
+        window.addEventListener('scroll', updateAutocompletePosition, true);
+        window.addEventListener('resize', updateAutocompletePosition);
+
+        function closeAutocomplete() {
+            autocompleteSuggestions.style.display = 'none';
+        }
+
+        const handleAutocompleteInput = (event) => {
+            const inputText = (event.target.value || '').trim();
+            currentActiveInput = event.target; 
+            updateAutocompletePosition(); 
+
+            if (inputText.length < 1 || !itensList || itensList.length === 0) {
+                autocompleteSuggestions.style.display = 'none';
+                return;
+            }
+
+            // NOVO: Normaliza o texto de entrada para comparação sem acentos
+            const normalizedInput = normalizeString(inputText);
+
+            // NOVO: Filtra usando a string normalizada
+            const filteredItens = itensList.filter(item => 
+                normalizeString(item.nome).includes(normalizedInput)
+            );
+
+            if (filteredItens.length > 0) {
+                const suggestionsHTML = filteredItens
+                    .map(item => `<div class="suggestion-item" data-name="${item.nome.replace(/"/g, '&quot;')}"><span>${item.nome}</span></div>`)
+                    .slice(0, 10) // Limitar a 10 sugestões
+                    .join('');
+                autocompleteSuggestions.innerHTML = suggestionsHTML;
+                autocompleteSuggestions.style.display = 'block';
+            } else {
+                autocompleteSuggestions.style.display = 'none';
+            }
+        };
+        
+        const debouncedHandleAutocomplete = debounce(handleAutocompleteInput, 150);
+
+        autocompleteSuggestions.addEventListener('mousedown', (event) => {
+            const suggestionItem = event.target.closest('.suggestion-item');
+            if (suggestionItem && currentActiveInput) {
+                event.preventDefault(); // Impede que o input perca o foco
+                const nome = suggestionItem.dataset.name;
+                currentActiveInput.value = nome;
+                
+                closeAutocomplete();
+                
+                // Disparar manualmente a função de redimensionar
+                autoResizeTextarea(currentActiveInput);
+                
+                // Se for o campo de NOVO item, comita para adicionar. Se for EDICÃO, apenas salva.
+                if (currentActiveInput.id === 'newItemName') {
+                    commitItem(); 
+                } else {
+                    // Item existente: apenas salva a lista atualizada
+                    setSyncStatus('syncing');
+                    debouncedSave();
+                }
+            }
+        });
+        // --- Fim das Funções do Autocomplete ---
+
+
+        function createAddItemRow(shouldFocus = false) {
+            document.querySelector('.add-item-row')?.remove();
+            const newRow = tableBody.insertRow(0);
+            newRow.classList.add('add-item-row');
+            newRow.innerHTML = `
+                <td></td>
+                <td><textarea id="newItemName" class="item-name-input" placeholder="Adicionar item" rows="1"></textarea></td>
+                <td class="price-cell"><input type="text" placeholder="R$ 0,00"></td>
+                <td class="price-cell"><input type="text" placeholder="R$ 0,00"></td>
+                <td><button class="action-btn add" onclick="commitItem()"><i class="fas fa-plus"></i></button></td>
+            `;
+            const newItemInput = document.getElementById('newItemName');
+            newItemInput.addEventListener('keydown', (event) => {
+                // Apenas comitar/mover se o autocomplete não estiver aberto e a tecla for Enter
+                if (event.key === 'Enter' && !event.shiftKey && autocompleteSuggestions.style.display !== 'block') {
+                    event.preventDefault();
+                    commitItem();
+                }
+            });
+            if (shouldFocus) newItemInput.focus();
+        }
+
+        function commitItem() {
+            const itemNameInput = document.getElementById('newItemName');
+            const itemName = itemNameInput.value.trim();
+            if (itemName === '') {
+                itemNameInput.focus();
+                return;
+            }
+            
+            closeAutocomplete(); // Garante que fecha ao comitar
+            
+            const row = itemNameInput.closest('tr');
+            const priceShibata = row.cells[2].querySelector('input').value || 'R$ 0,00';
+            const priceNagumo = row.cells[3].querySelector('input').value || 'R$ 0,00';
+
+            // ATUALIZADO: O novo item não tem 'id'
+            buildItemRow({ 
+                id: null, // Novo item
+                name: itemName, 
+                priceShibata: priceShibata, 
+                priceNagumo: priceNagumo, 
+                purchased: false 
+            }, true); 
+            
+            createAddItemRow(true);
+            saveList(); // Não é debounced, chama saveList() imediatamente
+        }
+        
+        function buildItemRow(itemData, isNew = false) {
+            const newRow = tableBody.insertRow(isNew ? 0 : tableBody.rows.length);
+            if (itemData.purchased) newRow.classList.add('purchased');
+
+            // ATUALIZADO: Armazena o ID no dataset da linha
+            newRow.dataset.id = itemData.id || '';
+
+            const getPriceInputHTML = (price) => {
+                const hasValue = price && price.trim() !== 'R$ 0,00';
+                return `<input type="text" ${hasValue ? `value="${price}"` : ''} placeholder="R$ 0,00">`;
+            };
+
+            newRow.innerHTML = `
+                <td><input type="checkbox" onchange="togglePurchased(this)" ${itemData.purchased ? 'checked' : ''}></td>
+                <td><textarea class="item-name-input" rows="1">${itemData.name}</textarea></td>
+                <td class="price-cell">${getPriceInputHTML(itemData.priceShibata)}</td>
+                <td class="price-cell">${getPriceInputHTML(itemData.priceNagumo)}</td>
+                <td><button class="action-btn" onclick="removeItem(this)"><i class="fas fa-trash-alt"></i></button></td>
+            `;
+            autoResizeTextarea(newRow.cells[1].querySelector('textarea'));
+            comparePrices(newRow.cells[2].querySelector('input'));
+        }
+
+        function redrawTable(items, shouldFocusNewItem = true) {
+            tableBody.innerHTML = '';
+            if (items && items.length > 0) {
+                // ATUALIZADO: Os itens são desenhados na ordem recebida (que é 'id DESC' do servidor)
+                items.forEach(item => buildItemRow(item, false));
+                sortAndGroup();
+            }
+            createAddItemRow(shouldFocusNewItem);
+        }
+
+        function removeItem(button) {
+            if (confirm('Tem certeza de que deseja remover este item?')) {
+                const row = button.closest('tr');
+                const id = row.dataset.id; // Pega o ID do item
+                const username = localStorage.getItem('currentUser');
+
+                // ATUALIZADO: Adiciona o ID à lista de 'pendingDeletes' se ele existir
+                if (id && username) {
+                    const key = `pendingDeletes_${username}`;
+                    const pendingDeletes = JSON.parse(localStorage.getItem(key) || '[]');
+                    if (!pendingDeletes.includes(parseInt(id))) { // Evita duplicatas
+                        pendingDeletes.push(parseInt(id));
+                        localStorage.setItem(key, JSON.stringify(pendingDeletes));
+                    }
+                }
+
+                row.remove(); // Remove do DOM
+                saveList(); // Dispara o save (que agora enviará a exclusão)
+            }
+        }
+
+        function togglePurchased(checkbox) {
+            checkbox.closest('tr').classList.toggle('purchased', checkbox.checked);
+            saveList();
+        }
+
+        function clearList() {
+            if (confirm('Tem certeza que deseja limpar toda a lista?')) {
+                const username = localStorage.getItem('currentUser');
+                if (!username) return;
+
+                const allRows = Array.from(tableBody.querySelectorAll('tr:not(.add-item-row)'));
+                const idsToDelete = [];
+
+                // ATUALIZADO: Coleta todos os IDs para exclusão
+                allRows.forEach(row => {
+                    const id = row.dataset.id;
+                    if (id) {
+                        idsToDelete.push(parseInt(id));
+                    }
+                    row.remove(); // Remove do DOM
+                });
+
+                if (idsToDelete.length > 0) {
+                    const key = `pendingDeletes_${username}`;
+                    // Mescla com quaisquer exclusões já pendentes
+                    const pendingDeletes = JSON.parse(localStorage.getItem(key) || '[]');
+                    idsToDelete.forEach(id => {
+                        if (!pendingDeletes.includes(id)) {
+                            pendingDeletes.push(id);
+                        }
+                    });
+                    localStorage.setItem(key, JSON.stringify(pendingDeletes));
+                }
+
+                saveList(); // Dispara o save (lista de itens vazia, lista de deletes cheia)
+                createAddItemRow(true); 
+            }
+        }
+        
+        // --- Eventos de Conexão ---
+        window.addEventListener('online', async () => {
+            isOnline = true;
+            // ATUALIZADO: Sincroniza primeiro as mudanças offline
+            await syncOfflineChanges(); 
+            // Em seguida, carrega a lista (que será a mesclada se a sincronização ocorrer)
+            await loadList(); 
+            startPolling(); // Reinicia o polling ao ficar online
+        });
+        window.addEventListener('offline', () => {
+            isOnline = false;
+            stopPolling(); // Para o polling ao ficar offline
+            setSyncStatus('offline');
+        });
+
+        // --- Funções de Formatação e Comparação de Preços ---
+        function formatCurrency(input) {
+            const value = input.value.trim();
+            const number = parseValueToFloat(value);
+            if (isNaN(number) || number === 0) {
+                input.value = '';
+                input.placeholder = 'R$ 0,00';
+            } else {
+                input.value = number.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                input.placeholder = 'R$ 0,00';
+            }
+        }
+
+        function parseValueToFloat(value) {
+            if (!value) return NaN;
+            return parseFloat(value.replace('R$', '').trim().replace('.', '').replace(',', '.'));
+        }
+
+        function comparePrices(input) {
+            const row = input.closest('tr');
+            if (!row || row.classList.contains('add-item-row')) return;
+            const shibataInput = row.cells[2].querySelector('input');
+            const nagumoInput = row.cells[3].querySelector('input');
+            shibataInput.classList.remove('cheapest-price', 'equal-price');
+            nagumoInput.classList.remove('cheapest-price', 'equal-price');
+            const shibataPrice = parseValueToFloat(shibataInput.value);
+            const nagumoPrice = parseValueToFloat(nagumoInput.value);
+            const validShibata = !isNaN(shibataPrice) && shibataPrice > 0;
+            const validNagumo = !isNaN(nagumoPrice) && nagumoPrice > 0;
+            if (validShibata && validNagumo) {
+                if (shibataPrice < nagumoPrice) shibataInput.classList.add('cheapest-price');
+                else if (nagumoPrice < shibataPrice) nagumoInput.classList.add('cheapest-price');
+                else { shibataInput.classList.add('equal-price'); nagumoInput.classList.add('equal-price'); }
+            } else if (validShibata) { shibataInput.classList.add('cheapest-price');
+            } else if (validNagumo) { nagumoInput.classList.add('cheapest-price'); }
+            sortAndGroup();
+        }
+
+        function sortAndGroup() {
+            const allRows = Array.from(tableBody.querySelectorAll('tr:not(.add-item-row)'));
+            const unpriced = [], shibata = [], equal = [], nagumo = [];
+            allRows.forEach(row => {
+                const pS = parseValueToFloat(row.cells[2].querySelector('input').value);
+                const pN = parseValueToFloat(row.cells[3].querySelector('input').value);
+                const vS = !isNaN(pS) && pS > 0, vN = !isNaN(pN) && pN > 0;
+                if (!vS && !vN) unpriced.push(row);
+                else if (vS && vN && pS === pN) equal.push(row);
+                else if (vS && (!vN || pS < pN)) shibata.push(row);
+                else nagumo.push(row);
+            });
+            
+            // REMOVIDO: A ordenação interna por preço (sortByMin) para preservar a ordem de adição/inserção 
+            // DENTRO dos grupos de preço, mantendo o agrupamento principal por status de preço.
+            /*
+            const sortByMin = (a, b) => {
+                const getMin = r => Math.min(parseValueToFloat(r.cells[2].querySelector('input').value) || Infinity, parseValueToFloat(r.cells[3].querySelector('input').value) || Infinity);
+                return getMin(a) - getMin(b);
+            };
+            shibata.sort(sortByMin); 
+            equal.sort(sortByMin); 
+            nagumo.sort(sortByMin);
+            */
+            
+            // O agrupamento (unpriced -> shibata -> equal -> nagumo) é mantido, garantindo a ordenação primária por status de preço.
+            [...unpriced, ...shibata, ...equal, ...nagumo].forEach(row => tableBody.appendChild(row));
+        }
+
+        // --- Funções Auxiliares (Streamlit, Teclado Virtual) ---
+        function wakeUpApp() {
+            const iframeWrapper = document.getElementById('iframe-wrapper');
+            const iframeOverlay = document.getElementById('iframe-overlay');
+            iframeOverlay.style.display = 'flex';
+            let streamlitIframe = document.getElementById('streamlit-app');
+            if (streamlitIframe) streamlitIframe.remove();
+            const newIframe = document.createElement('iframe');
+            newIframe.id = 'streamlit-app';
+            newIframe.src = `https://precosmercados.streamlit.app/?embed=true&minimal=true&t=${new Date().getTime()}`;
+            newIframe.onload = () => { iframeOverlay.style.display = 'none'; };
+            iframeWrapper.prepend(newIframe);
+        }
+
+        function setupVirtualKeyboardListener() {
+            if (!window.visualViewport) return;
+            const isLikelyKeyboardOpen = () => window.innerHeight - window.visualViewport.height > 150;
+            let keyboardWasOpen = isLikelyKeyboardOpen();
+            window.visualViewport.addEventListener('resize', () => {
+                const keyboardIsOpen = isLikelyKeyboardOpen();
+                if (keyboardWasOpen && !keyboardIsOpen) {
+                    if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+                         document.activeElement.blur();
+                    }
+                }
+                keyboardWasOpen = keyboardIsOpen;
+            });
+        }
+
+        // --- INICIALIZAÇÃO DA APLICAÇÃO ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            await carregarItens();
+            
+            if (localStorage.getItem('authToken')) {
+                showApp();
+            } else {
+                showAuth();
+            }
+            setupVirtualKeyboardListener();
+            // ATUALIZADO: Verifica pendências para definir o status inicial
+            const username = localStorage.getItem('currentUser');
+            let hasPending = false;
+            if (username) {
+                const pendingItems = localStorage.getItem(`offlineList_${username}`);
+                const pendingDeletes = localStorage.getItem(`pendingDeletes_${username}`);
+                if (pendingItems || (pendingDeletes && pendingDeletes !== '[]')) {
+                    hasPending = true;
+                }
+            }
+            
+            if (!isOnline || hasPending) {
+                setSyncStatus('offline');
+            } else {
+                setSyncStatus('saved');
+            }
+        });
+        
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(registration => {
+                console.log('ServiceWorker registrado com sucesso: ', registration.scope);
+                })
+                .catch(error => {
+                console.log('Falha ao registrar o ServiceWorker: ', error);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
