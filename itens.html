@@ -1,70 +1,200 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lista de Compras Dinâmica</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #f4f7f9;
-      color: #333;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      margin: 0;
-    }
-    .container {
-      background-color: white;
-      padding: 2rem 3rem;
-      border-radius: 10px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-      width: 90%;
-      max-width: 500px;
-      text-align: center;
-    }
-    h1 {
-      color: #2c3e50;
-      margin-bottom: 1.5rem;
-    }
-    ul {
-      list-style-type: none;
-      padding: 0;
-      text-align: left;
-    }
-    li {
-      background-color: #ecf0f1;
-      border-radius: 5px;
-      padding: 0.8rem 1rem;
-      margin-bottom: 0.5rem;
-      font-size: 1.1rem;
-      transition: transform 0.2s;
-    }
-    li:hover {
-      transform: scale(1.02);
-    }
-    .status {
-      font-style: italic;
-      color: #7f8c8d;
-      height: 20px;
-    }
-    .error {
-      color: #e74c3c;
-      font-weight: bold;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Compras Dinâmica</title>
+    
+    <link rel="icon" href="01.png" type="image/png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-color: #212121;
+            --card-color: #2c2c2c;
+            --text-color: #f0f0f0;
+            --secondary-text-color: #a0a0a0;
+            --primary-color: #ffc107;
+            --green-highlight: #4CAF50;
+            --danger-color: #f44336;
+            --yellow-sync-color: #ffc107;
+            --border-radius: 12px;
+            --input-bg-color: #383838;
+            --menu-width: 250px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+        
+        #auth-container { display: none; }
+        
+        #app-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            flex-grow: 1;
+        }
+
+        /* --- HEADER --- */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--input-bg-color);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: var(--bg-color);
+        }
+        .header .menu-icon { font-size: 1.5rem; cursor: pointer; color: var(--primary-color); padding: 5px; }
+        .header .title { font-size: 1.25rem; font-weight: bold; display: flex; align-items: center; white-space: nowrap; position: absolute; left: 50%; transform: translateX(-50%); }
+        .header .title i { margin-right: 8px; color: var(--primary-color); }
+
+        /* --- SIDE MENU & OVERLAY --- */
+        .side-menu { height: 100%; width: 0; position: fixed; z-index: 1001; top: 0; left: 0; background-color: var(--card-color); overflow-x: hidden; transition: 0.3s; padding-top: 60px; box-shadow: 2px 0 10px rgba(0,0,0,0.5); }
+        .side-menu.open { width: var(--menu-width); }
+        .side-menu .close-btn { position: absolute; top: 15px; right: 25px; font-size: 2rem; color: var(--primary-color); cursor: pointer; line-height: 1; }
+        .side-menu a { padding: 15px 20px; text-decoration: none; font-size: 1.1rem; color: var(--text-color); display: block; transition: 0.3s; border-bottom: 1px solid var(--input-bg-color); }
+        .side-menu a:hover { background-color: #575757; color: var(--primary-color); }
+        .side-menu a i { color: var(--primary-color); width: 20px; text-align: center; margin-right: 10px; }
+        #page-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 1000; display: none; transition: opacity 0.3s; }
+        #page-overlay.show { display: block; }
+
+        /* --- CONTEÚDO PRINCIPAL --- */
+        .container {
+            padding: 20px 16px;
+            max-width: 100%;
+            margin: 0;
+            flex-grow: 1;
+        }
+
+        .section {
+            background-color: var(--card-color);
+            padding: 20px 16px;
+            border-radius: var(--border-radius);
+            margin: 0 0 24px 0;
+        }
+        
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .section-header h2 { margin: 0; font-size: 1.5rem; color: var(--primary-color); }
+
+        /* --- ESTILOS ADAPTADOS DO itens.html ORIGINAL --- */
+        #shopping-list {
+            list-style-type: none;
+            padding: 0;
+            text-align: left;
+        }
+        #shopping-list li {
+            background-color: var(--input-bg-color); /* Adaptado para o tema escuro */
+            border-radius: 5px;
+            padding: 0.8rem 1rem;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+            transition: transform 0.2s;
+            color: var(--text-color); /* Adaptado */
+        }
+        #shopping-list li:hover {
+            transform: scale(1.02);
+            background-color: #575757; /* Adaptado */
+        }
+        .status {
+            font-style: italic;
+            color: var(--secondary-text-color); /* Adaptado */
+            height: 20px;
+            text-align: center; /* Centralizado no novo layout */
+            margin-bottom: 1rem; /* Espaçamento */
+        }
+        .error {
+            color: var(--danger-color); /* Adaptado */
+            font-weight: bold;
+        }
+        /* --- FIM DOS ESTILOS ADAPTADOS --- */
+
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .footer { text-align: center; padding: 16px; color: var(--secondary-text-color); font-size: 0.875rem; background-color: #282828; margin-top: auto; width: 100%; }
+        
+    </style>
+
 </head>
 <body>
+    
+    <div id="app-container">
+        <div id="side-menu" class="side-menu">
+            <a href="javascript:void(0)" class="close-btn" onclick="closeNav()">&times;</a>
+            <a href="index.html"><i class="fas fa-list-check"></i> Minha Lista</a>
+            <a href="#"><i class="fas fa-archive"></i> Meus Itens Salvos</a>
+            <a href="#"><i class="fas fa-history"></i> Histórico</a>
+            <a href="#"><i class="fas fa-tags"></i> Ofertas</a>
+            <a href="javascript:void(0)" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Sair</a>
+        </div>
+        <div id="page-overlay" onclick="closeNav()"></div>
 
-  <div class="container">
-    <h1>🛒 Minha Lista de Compras</h1>
-    <p class="status" id="status-message">Carregando itens do Cloudflare...</p>
-    <ul id="shopping-list">
-      </ul>
-  </div>
+        <div id="main-content-wrapper">
+            <div class="header">
+                <span class="menu-icon" onclick="openNav()">&#9776;</span>
+                <span class="title">
+                    🛒 Minha Lista de Compras
+                </span>
+                </div>
 
-  <script>
+            <div class="container">
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Itens da Lista</h2>
+                    </div>
+
+                    <p class="status" id="status-message">Carregando itens do Cloudflare...</p>
+                    <ul id="shopping-list">
+                        </ul>
+                </div>
+            </div>
+
+            <footer class="footer">
+                Visualize sua lista de compras.
+            </footer>
+        </div>
+        
+    </div>
+
+<script>
+    // --- LÓGICA DE UI (Menu) DO LAYOUT ---
+    // Estas funções são necessárias para o layout (menu lateral) funcionar
+    function openNav() { 
+        document.getElementById("side-menu").classList.add('open'); 
+        document.getElementById("page-overlay").classList.add('show'); 
+    }
+    function closeNav() { 
+        document.getElementById("side-menu").classList.remove('open'); 
+        document.getElementById("page-overlay").classList.remove('show'); 
+    }
+    document.addEventListener('keydown', (event) => { 
+        if (event.key === "Escape") closeNav(); 
+    });
+    function handleLogout() { 
+        console.log("Logout clicado");
+        // Implementar lógica de logout se necessário
+    }
+
+    // --- SCRIPT ORIGINAL DO ARQUIVO itens.html ---
+    
     // IMPORTANTE:Esta URL agora é RELATIVA.
     // Ela aponta para o arquivo /functions/shopping-list.js
     const WORKER_URL = '/api/shopping-list'; // <-- ESTA É A MUDANÇA
@@ -111,7 +241,6 @@
 
     // Executa a função quando a página terminar de carregar
     document.addEventListener('DOMContentLoaded', fetchShoppingList);
-  </script>
-
+</script>
 </body>
 </html>
