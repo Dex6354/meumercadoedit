@@ -382,6 +382,9 @@
     <div id="autocomplete-suggestions"></div>
 
     <script>
+        // --- CONSTANTE DA API DE ITENS ---
+        const WORKER_URL = '/api/shopping-list';
+
         // --- GERENCIAMENTO DE AUTENTICAÇÃO ---
         const authContainer = document.getElementById('auth-container');
         const appContainer = document.getElementById('app-container');
@@ -394,7 +397,7 @@
             passwordInput.setAttribute('type', type);
             this.classList.toggle('fa-eye-slash');
         });
-        
+
         passwordInput.addEventListener('keydown', function(event) {
             if (event.key === 'Enter') {
                 event.preventDefault();
@@ -525,15 +528,14 @@
         let syncState = 'saved';
         let isOnline = navigator.onLine;
         let pollingIntervalId = null; // ID para o intervalo do polling
-        
-        // --- Autocomplete Item List (Loaded from itens.json) ---
+
+        // --- Autocomplete Item List (Loaded from KV) ---
         let itensList = [];
-        
+
         async function carregarItens() {
             try {
-                // ALTERADO: Removido o cache-buster (timestamp) para permitir que o Service Worker
-                // use a estratégia Stale-While-Revalidate (SWR) ou sirva o cache offline.
-                const response = await fetch(`itens.json`); 
+                // ALTERADO: Agora busca do endpoint da API (Cloudflare KV)
+                const response = await fetch(WORKER_URL); 
                 if (!response.ok) {
                     // Se a rede falhar E não houver cache (primeiro acesso offline), 
                     // a promise pode ser rejeitada ou o status ser 503 (offline).
@@ -544,14 +546,14 @@
                 itensList = await response.json();
                 console.log(`Itens de Autocomplete carregados: ${itensList.length}`);
             } catch (error) {
-                console.error('Falha ao carregar itens.json para autocomplete (Pode ser o primeiro acesso offline):', error);
+                console.error('Falha ao carregar lista de itens da API (Pode ser o primeiro acesso offline):', error);
                 // Fallback to empty list
                 itensList = [];
             }
         }
-        
+
         let currentActiveInput = null; // Input ativo para o Autocomplete
-        
+
         // --- FUNÇÃO ADICIONADA: Normaliza string para comparação sem acentos ---
         function normalizeString(str) {
             return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -564,7 +566,7 @@
                 setTimeout(() => { if (syncState === 'error') setSyncStatus('offline'); }, 3000);
             }
         }
-        
+
         // --- LÓGICA DE POLLING (SINCRONIZAÇÃO CONTÍNUA) ---
         function stopPolling() {
             if (pollingIntervalId) {
@@ -577,7 +579,7 @@
             stopPolling(); // Garante que não haja múltiplos intervalos rodando
             pollingIntervalId = setInterval(pollForChanges, 4000); // Verifica por mudanças a cada 4 segundos
         }
-        
+
         async function pollForChanges() {
             const activeEl = document.activeElement;
 
@@ -644,7 +646,7 @@
             const items = getCurrentLocalItems();
             const username = localStorage.getItem('currentUser');
             if (!username) return;
-            
+
             // ATUALIZADO: Busca exclusões pendentes
             const pendingDeletes = JSON.parse(localStorage.getItem(`pendingDeletes_${username}`) || '[]');
 
@@ -656,7 +658,7 @@
                 // As exclusões pendentes já estão salvas no localStorage, então não faz mais nada
                 return;
             }
-            
+
             // CORREÇÃO: Define 'syncing' aqui, *antes* do await,
             // para que o pollForChanges pare imediatamente.
             setSyncStatus('syncing'); 
@@ -678,22 +680,22 @@
                 });
                 if (response.status === 401) return handleLogout();
                 if (!response.ok) throw new Error('Falha ao salvar no servidor.');
-                
+
                 // ATUALIZADO: O servidor agora retorna a lista mesclada e autoritativa
                 const mergedItems = await response.json();
 
                 setSyncStatus('saved');
-                
+
                 // Salva a lista autoritativa (com novos IDs) no cache principal
                 localStorage.setItem(`shoppingList_${username}`, JSON.stringify(mergedItems));
-                
+
                 // Limpa as pendências offline (itens e deletes) APÓS o sucesso
                 localStorage.removeItem(`offlineList_${username}`);
                 localStorage.removeItem(`pendingDeletes_${username}`);
 
                 // ATUALIZADO: Redesenha a tabela com a lista do servidor
                 // Isso é crucial para que os novos itens recebam seus IDs corretos no DOM
-                
+
                 // CORREÇÃO: Não redesenha a tabela se o usuário estiver
                 // ativamente digitando em um campo, para evitar perda de dados/foco.
                 const activeEl = document.activeElement;
@@ -720,7 +722,7 @@
         async function syncOfflineChanges() {
             const username = localStorage.getItem('currentUser');
             if (!username) return;
-            
+
             const pendingItemsJSON = localStorage.getItem(`offlineList_${username}`);
             // ATUALIZADO: Carrega também as exclusões pendentes
             const pendingDeletes = JSON.parse(localStorage.getItem(`pendingDeletes_${username}`) || '[]');
@@ -732,7 +734,7 @@
             }
 
             console.log("Conectado. Sincronizando alterações pendentes...");
-            
+
             try {
                 // Se 'pendingItemsJSON' existir, usa ele (é a fonte da verdade offline)
                 // Se não, usa a lista do cache (mas ainda pode haver 'pendingDeletes' para enviar)
@@ -741,11 +743,11 @@
                     : JSON.parse(localStorage.getItem(`shoppingList_${username}`) || '[]');
 
                 // ATUALIZADO: Envia itens e exclusões pendentes
-                
+
                 // CORREÇÃO: Define 'syncing' aqui, *antes* do await
                 setSyncStatus('syncing');
                 await saveListOnline(localOfflineItems, pendingDeletes);
-                
+
                 // O 'redrawTable' agora é chamado DENTRO de 'saveListOnline'
 
             } catch (error) {
@@ -784,7 +786,7 @@
                 redrawTable(cachedItems);
                 return;
             }
-            
+
             // Se não houver pendências, tenta sincronizar
             if (syncState !== 'offline') setSyncStatus('syncing');
             try {
@@ -797,7 +799,7 @@
                 redrawTable(remoteItems, true);
                 // Só muda para 'saved' se não houver pendências offline
                 if (syncState !== 'offline') setSyncStatus('saved');
-            
+
             } catch (error) { // <-- Erro de sintaxe estava aqui (corrigido anteriormente)
                 console.error('Erro ao buscar lista online, usando cache como fallback:', error);
                 setSyncStatus('offline'); 
@@ -821,14 +823,14 @@
             const target = event.target;
             if (target.tagName.toLowerCase() === 'textarea') {
                 autoResizeTextarea(target);
-                
+
                 if (target.classList.contains('item-name-input')) { 
                     currentActiveInput = target; 
                     updateAutocompletePosition(); 
                     debouncedHandleAutocomplete(event); 
                 }
             }
-            
+
             // CORREÇÃO: SÓ chama debouncedSave se NÃO for um campo da "add-item-row"
             const row = target.closest('tr');
             if (row && !row.classList.contains('add-item-row') && ['textarea', 'input'].includes(target.tagName.toLowerCase())) {
@@ -836,7 +838,7 @@
                 debouncedSave();
             }
         });
-        
+
         tableBody.addEventListener('focus', (event) => {
             const target = event.target;
             if (target.tagName.toLowerCase() === 'input' && target.type === 'text') {
@@ -861,7 +863,7 @@
             const target = event.target;
             // CORREÇÃO: Pega a linha do evento
             const row = target.closest('tr'); 
-            
+
             // CORREÇÃO: SÓ formata/salva se for um campo de preço e NÃO for da "add-item-row"
             if (target.tagName.toLowerCase() === 'input' && target.type === 'text' && row && !row.classList.contains('add-item-row')) {
                 formatCurrency(event.target);
@@ -882,10 +884,10 @@
         // ##################################################################
         // ## FIM DA CORREÇÃO DE BUG
         // ##################################################################
-        
-        
+
+
         // --- Funções do Autocomplete ---
-        
+
         function updateAutocompletePosition() {
             if (currentActiveInput) { 
                 const rect = currentActiveInput.getBoundingClientRect();
@@ -931,7 +933,7 @@
                 autocompleteSuggestions.style.display = 'none';
             }
         };
-        
+
         const debouncedHandleAutocomplete = debounce(handleAutocompleteInput, 150);
 
         autocompleteSuggestions.addEventListener('mousedown', (event) => {
@@ -940,12 +942,12 @@
                 event.preventDefault(); // Impede que o input perca o foco
                 const nome = suggestionItem.dataset.name;
                 currentActiveInput.value = nome;
-                
+
                 closeAutocomplete();
-                
+
                 // Disparar manualmente a função de redimensionar
                 autoResizeTextarea(currentActiveInput);
-                
+
                 // Se for o campo de NOVO item, comita para adicionar. Se for EDICÃO, apenas salva.
                 if (currentActiveInput.id === 'newItemName') {
                     commitItem(); 
@@ -988,9 +990,9 @@
                 itemNameInput.focus();
                 return;
             }
-            
+
             closeAutocomplete(); // Garante que fecha ao comitar
-            
+
             const row = itemNameInput.closest('tr');
             const priceShibata = row.cells[2].querySelector('input').value || 'R$ 0,00';
             const priceNagumo = row.cells[3].querySelector('input').value || 'R$ 0,00';
@@ -1003,11 +1005,11 @@
                 priceNagumo: priceNagumo, 
                 purchased: false 
             }, true); 
-            
+
             createAddItemRow(true);
             saveList(); // Não é debounced, chama saveList() imediatamente
         }
-        
+
         function buildItemRow(itemData, isNew = false) {
             const newRow = tableBody.insertRow(isNew ? 0 : tableBody.rows.length);
             if (itemData.purchased) newRow.classList.add('purchased');
@@ -1100,7 +1102,7 @@
                 createAddItemRow(true); 
             }
         }
-        
+
         // --- Eventos de Conexão ---
         window.addEventListener('online', async () => {
             isOnline = true;
@@ -1166,7 +1168,7 @@
                 else if (vS && (!vN || pS < pN)) shibata.push(row);
                 else nagumo.push(row);
             });
-            
+
             // REMOVIDO: A ordenação interna por preço (sortByMin) para preservar a ordem de adição/inserção 
             // DENTRO dos grupos de preço, mantendo o agrupamento principal por status de preço.
             /*
@@ -1178,7 +1180,7 @@
             equal.sort(sortByMin); 
             nagumo.sort(sortByMin);
             */
-            
+
             // O agrupamento (unpriced -> shibata -> equal -> nagumo) é mantido, garantindo a ordenação primária por status de preço.
             [...unpriced, ...shibata, ...equal, ...nagumo].forEach(row => tableBody.appendChild(row));
         }
@@ -1215,7 +1217,7 @@
         // --- INICIALIZAÇÃO DA APLICAÇÃO ---
         document.addEventListener('DOMContentLoaded', async () => {
             await carregarItens();
-            
+
             if (localStorage.getItem('authToken')) {
                 showApp();
             } else {
@@ -1232,14 +1234,14 @@
                     hasPending = true;
                 }
             }
-            
+
             if (!isOnline || hasPending) {
                 setSyncStatus('offline');
             } else {
                 setSyncStatus('saved');
             }
         });
-        
+
         // Service Worker Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
