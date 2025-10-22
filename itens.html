@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meu Mercado - Lista de Itens</title>
-    
+
     <link rel="icon" href="01.png" type="image/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    
+
     <style>
         :root {
             --bg-color: #212121;
@@ -36,9 +36,9 @@
             flex-direction: column;
             overflow-x: hidden;
         }
-        
+
         #auth-container { display: none; }
-        
+
         #app-container {
             display: flex;
             flex-direction: column;
@@ -92,24 +92,22 @@
             border-radius: var(--border-radius);
             margin: 0 0 24px 0;
         }
-        
+
         .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
         .section-header h2 { margin: 0; font-size: 1.5rem; color: var(--primary-color); }
 
         /* --- ESTILOS ADAPTADOS DO itens.html ORIGINAL --- */
-        
-        /* --- Estilo para a barra de pesquisa (AJUSTADO) --- */
+
         #search-input {
             width: 100%;
             padding: 12px 15px;
             background-color: var(--input-bg-color);
             color: var(--text-color);
-            border: 1px solid #444; /* Borda sutil */
+            border: 1px solid #444;
             border-radius: var(--border-radius);
             font-size: 1rem;
-            outline: none; /* Remove o outline padrão */
+            outline: none;
             transition: border-color 0.2s, box-shadow 0.2s;
-            /* REMOVENDO GRANDE PARTE DO ESPAÇAMENTO ABAIXO DA BARRA */
             margin-bottom: 8px; 
         }
         #search-input::placeholder {
@@ -117,39 +115,80 @@
         }
         #search-input:focus {
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.2); /* Sombra de foco sutil */
+            box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.2);
         }
-        
-        /* LISTA DE COMPRAS (AJUSTADO) */
+
         #shopping-list {
             list-style-type: none;
             padding: 0;
             text-align: left;
-            /* REMOVENDO MARGEM SUPERIOR (GARANTE QUE FIQUE PRÓXIMO DA BUSCA) */
             margin-top: 12px; 
         }
         #shopping-list li {
-            background-color: var(--input-bg-color); /* Adaptado para o tema escuro */
+            background-color: var(--input-bg-color);
             border-radius: 5px;
             padding: 0.8rem 1rem;
             margin-bottom: 0.5rem;
             font-size: 1.1rem;
-            transition: transform 0.2s;
-            color: var(--text-color); /* Adaptado */
+            color: var(--text-color);
+            /* NOVO: Flexbox para alinhar ícones e botões */
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background-color 0.2s;
         }
         #shopping-list li:hover {
-            transform: scale(1.02);
-            background-color: #575757; /* Adaptado */
+            background-color: #575757;
         }
+
+        .item-name {
+            flex-grow: 1; /* Ocupa o espaço disponível */
+            padding: 0 10px; /* Espaçamento */
+        }
+
+        .in-list-icon {
+            color: var(--green-highlight);
+            font-size: 1.2rem;
+            width: 20px; /* Largura fixa para alinhamento */
+            text-align: center;
+            display: none; /* Oculto por padrão */
+        }
+
+        .add-btn {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            font-size: 1.2rem;
+            cursor: pointer;
+            width: 20px; /* Largura fixa para alinhamento */
+            text-align: center;
+            padding: 0;
+            display: none; /* Oculto por padrão */
+        }
+
+        .add-btn:hover {
+            color: #ffd54f;
+        }
+
+        /* NOVO: Regras para mostrar/ocultar ícones */
+        #shopping-list li.in-list .in-list-icon {
+            display: block; /* Mostra o "check" */
+        }
+        #shopping-list li:not(.in-list) .add-btn {
+            display: block; /* Mostra o "+" */
+        }
+
+        /* FIM DAS NOVAS REGRAS */
+
         .status {
             font-style: italic;
-            color: var(--secondary-text-color); /* Adaptado */
+            color: var(--secondary-text-color);
             height: 20px;
-            text-align: center; /* Centralizado no novo layout */
-            margin-bottom: 1rem; /* Espaçamento */
+            text-align: center;
+            margin-bottom: 1rem;
         }
         .error {
-            color: var(--danger-color); /* Adaptado */
+            color: var(--danger-color);
             font-weight: bold;
         }
         /* --- FIM DOS ESTILOS ADAPTADOS --- */
@@ -160,14 +199,22 @@
             align-items: center;
             gap: 15px;
         }
+        /* Copiado do index.html para exibir o nome de usuário */
+        #username-display {
+            color: var(--secondary-text-color);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
         .footer { text-align: center; padding: 16px; color: var(--secondary-text-color); font-size: 0.875rem; background-color: #282828; margin-top: auto; width: 100%; }
-        
+
     </style>
 
 </head>
 <body>
-    
+
     <div id="app-container">
         <div id="side-menu" class="side-menu">
             <a href="javascript:void(0)" class="close-btn" onclick="closeNav()">&times;</a>
@@ -186,11 +233,10 @@
                     <img src="01.png" alt="Ícone">
                     Meu Mercado
                 </span>
-                
+
                 <div class="header-right">
                     <span id="username-display"></span>
-                    <div id="sync-status-indicator"></div>
-                </div>
+                    </div>
             </div>
 
             <div class="container">
@@ -198,10 +244,10 @@
                     <div class="section-header">
                         <h2>Lista de Itens</h2>
                     </div>
-                    
+
                     <input type="text" id="search-input" placeholder="Pesquisar item...">
 
-                    <p class="status" id="status-message">Carregando itens do Cloudflare...</p>
+                    <p class="status" id="status-message">Carregando...</p>
                     <ul id="shopping-list">
                         </ul>
                 </div>
@@ -211,12 +257,11 @@
                 Visualize sua lista de compras.
             </footer>
         </div>
-        
+
     </div>
 
 <script>
     // --- LÓGICA DE UI (Menu) DO LAYOUT ---
-    // Estas funções são necessárias para o layout (menu lateral) funcionar
     function openNav() { 
         document.getElementById("side-menu").classList.add('open'); 
         document.getElementById("page-overlay").classList.add('show'); 
@@ -228,134 +273,281 @@
     document.addEventListener('keydown', (event) => { 
         if (event.key === "Escape") closeNav(); 
     });
-    function handleLogout() { 
-        console.log("Logout clicado");
-        // Implementar lógica de logout se necessário
+
+    // --- LÓGICA DE AUTENTICAÇÃO (Copiado do index.html) ---
+    async function handleLogout() {
+        const token = localStorage.getItem('authToken');
+        if (token) {
+            try {
+                await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+            } catch (error) {
+                console.error("Logout failed, but proceeding.", error);
+            }
+        }
+        localStorage.removeItem('authToken');
+        const username = localStorage.getItem('currentUser');
+        if (username) {
+             localStorage.removeItem(`shoppingList_${username}`);
+             localStorage.removeItem(`offlineList_${username}`);
+             localStorage.removeItem(`pendingDeletes_${username}`);
+        }
+        localStorage.removeItem('currentUser');
+        window.location.href = '.'; // Redireciona para o index (login)
     }
 
-    // --- SCRIPT ORIGINAL DO ARQUIVO itens.html ---
-    
-    // IMPORTANTE:Esta URL agora é RELATIVA.
-    // Ela aponta para o arquivo /functions/shopping-list.js
-    const WORKER_URL = '/api/shopping-list'; // <-- ESTA É A MUDANÇA
+    function getAuthHeaders() {
+        const token = localStorage.getItem('authToken');
+        return {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
+    }
 
-    let allItems = []; // <-- Armazena a lista completa de itens
-    
-    /**
-     * NOVO: Função para normalizar strings (remover acentos e converter para minúsculo)
-     * Isso permite que "candida" encontre "Cândida"
-     */
+    function checkAuth() {
+        if (!localStorage.getItem('authToken')) {
+            // Se não está logado, volta para a página principal (que mostrará o login)
+            window.location.href = '.';
+            return false;
+        }
+        const username = localStorage.getItem('currentUser');
+        const usernameDisplay = document.getElementById('username-display');
+        if (username && usernameDisplay) {
+            usernameDisplay.innerHTML = `<i class="fas fa-user"></i> ${username}`;
+        }
+        return true;
+    }
+    // --- FIM DA LÓGICA DE AUTENTICAÇÃO ---
+
+
+    // --- SCRIPT DA PÁGINA de ITENS ---
+
+    const WORKER_URL = '/api/shopping-list'; // URL da lista mestre (KV)
+    const USER_LIST_URL = '/api/list';      // URL da lista do usuário (Durable Object)
+    let isOnline = navigator.onLine;
+
+    let allItems = []; // Armazena a lista mestre completa
+    let userList = []; // Armazena a lista pessoal do usuário
+
     function normalizeString(str) {
         if (!str) return "";
         return str
-            .toLowerCase() // 1. Converte para minúsculo
-            .normalize("NFD") // 2. Separa acentos (ex: "cândida" -> "c" + "a" + "´" + "n" + "d" + "i" + "d" + "a")
-            .replace(/[\u0300-\u036f]/g, ""); // 3. Remove os acentos (diacríticos)
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "");
     }
 
     /**
-     * NOVO: Função dedicada para renderizar a lista na tela.
-     * Ela recebe um array de itens (filtrado ou completo) para exibir.
+     * Renderiza a lista na tela.
+     * Agora compara com a userList para definir o estado.
      */
     function renderList(items) {
       const listElement = document.getElementById('shopping-list');
       const statusMessage = document.getElementById('status-message');
 
-      // Limpa a lista atual
       listElement.innerHTML = '';
 
+      // Cria um Set normalizado dos nomes na lista do usuário para busca rápida
+      const normalizedUserListNames = new Set(userList.map(item => normalizeString(item.name)));
+
       if (items.length === 0) {
-        // Verifica se a lista *original* está vazia ou se é um filtro sem resultados
         if (allItems.length === 0) {
-            statusMessage.textContent = 'A lista de compras está vazia!';
+            statusMessage.textContent = 'A lista mestre de itens está vazia!';
         } else {
             statusMessage.textContent = 'Nenhum item encontrado na pesquisa.';
         }
       } else {
-        // MOVENDO: Limpando a mensagem aqui, a mensagem status agora será colocada
-        // antes do <ul>.
         statusMessage.textContent = ''; 
       }
 
-      // Adiciona cada item na lista na tela
       items.forEach(item => {
+        const normalizedItemName = normalizeString(item.nome);
+        const isInList = normalizedUserListNames.has(normalizedItemName);
+
         const listItem = document.createElement('li');
-        listItem.textContent = item.nome;
+        listItem.className = isInList ? 'in-list' : '';
+        listItem.dataset.itemName = item.nome; // Armazena o nome exato
+
+        listItem.innerHTML = `
+            <i class="fas fa-check-circle in-list-icon"></i>
+            <span class="item-name">${item.nome}</span>
+            <button class="add-btn"><i class="fas fa-plus"></i></button>
+        `;
         listElement.appendChild(listItem);
       });
-      
-      // AJUSTE LÓGICO: Se houver itens, a mensagem de status deve estar invisível/vazia
-      // mas se for a mensagem de "vazia" ou "nenhum encontrado", ela deve aparecer.
-      // O CSS já garante que o status ocupa 20px, mas vamos reforçar a lógica.
+
       if (items.length > 0) {
           statusMessage.style.display = 'none';
       } else {
           statusMessage.style.display = 'block';
       }
     }
-    
+
     /**
-     * NOVO: Função para lidar com a digitação na barra de pesquisa.
-     * AGORA COM NORMALIZAÇÃO (accent-insensitive)
+     * Lida com a digitação na barra de pesquisa.
      */
     function handleSearch() {
         const searchInput = document.getElementById('search-input');
-        
-        // Pega o valor, remove espaços extras e NORMALIZA (remove acentos, minúsculo)
         const searchTerm = normalizeString(searchInput.value.trim());
-        
-        // Filtra a lista completa (allItems)
+
         const filteredItems = allItems.filter(item => {
-            // NORMALIZA o nome do item antes de comparar
             const normalizedItemName = normalizeString(item.nome);
-            return normalizedItemName.includes(searchTerm); // Comparação normalizada
+            return normalizedItemName.includes(searchTerm);
         });
-        
-        // Renderiza apenas os itens filtrados
+
         renderList(filteredItems);
     }
 
-    // Função para buscar e enderizar a lista
-    async function fetchShoppingList() {
-      const statusMessage = document.getElementById('status-message');
-      
-      // Garante que a mensagem de carregamento e erro seja resetada
-      statusMessage.textContent = 'Carregando itens do Cloudflare...';
-      statusMessage.classList.remove('error');
-      statusMessage.style.display = 'block'; // Mostra durante o carregamento
+    /**
+     * NOVO: Salva a lista de compras do usuário no servidor e no cache local.
+     */
+    async function saveUserList(listToSave, listItemElement) {
+        const username = localStorage.getItem('currentUser');
+        if (!username) return;
 
-      try {
-        // O navegador vai chamar: https://....pages.dev/shopping-list
-        const response = await fetch(WORKER_URL); 
-
-        if (!response.ok) {
-          // Captura erros de HTTP (como 404 ou 500)
-          const errorData = await response.json();
-          throw new Error(errorData.error || `Erro HTTP: ${response.status}`);
+        // Se estiver offline, não tenta salvar e reverte a UI
+        if (!navigator.onLine) {
+            alert('Você está offline. Não é possível adicionar itens.');
+            if(listItemElement) listItemElement.classList.remove('in-list'); // Reverte a UI
+            // Reverte o estado local do userList
+            userList = userList.filter(item => normalizeString(item.name) !== normalizeString(listItemElement.dataset.itemName));
+            return;
         }
 
-        const items = await response.json();
+        try {
+            const response = await fetch(USER_LIST_URL, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ items: listToSave, deletes: [] }) // Envia a lista completa
+            });
 
-        allItems = items; // <-- ARMAZENA a lista completa na variável global
-        renderList(allItems); // <-- CHAMA a nova função para renderizar a lista inteira
+            if (!response.ok) {
+                throw new Error('Falha ao salvar no servidor.');
+            }
 
-      } catch (error) {
-        console.error('Falha ao buscar a lista de compras:', error);
-        statusMessage.textContent = `Erro ao carregar a lista: ${error.message}`;
-        statusMessage.classList.add('error');
+            const mergedItems = await response.json();
+
+            // Sucesso: Atualiza o estado global e o cache
+            userList = mergedItems; 
+            localStorage.setItem(`shoppingList_${username}`, JSON.stringify(mergedItems));
+            console.log('Item adicionado e lista sincronizada.');
+
+        } catch (error) {
+            console.error('Erro ao adicionar item:', error);
+            alert('Erro ao adicionar o item. Tente novamente.');
+
+            // Reverte a UI
+            if(listItemElement) listItemElement.classList.remove('in-list');
+
+            // Reverte o estado local do userList
+            userList = userList.filter(item => normalizeString(item.name) !== normalizeString(listItemElement.dataset.itemName));
+        }
+    }
+
+    /**
+     * NOVO: Lida com o clique no botão de adicionar.
+     */
+    function handleAddItemClick(event) {
+        const addButton = event.target.closest('.add-btn');
+        if (!addButton) return; // Não foi um clique no botão de adicionar
+
+        const listItem = addButton.closest('li');
+        const itemName = listItem.dataset.itemName;
+        if (!itemName) return;
+
+        // Verifica se já não está na lista (segurança extra)
+        const normalizedItemName = normalizeString(itemName);
+        if (userList.some(item => normalizeString(item.name) === normalizedItemName)) {
+            return;
+        }
+
+        // --- Atualização Otimista da UI ---
+        // 1. Muda a UI imediatamente
+        listItem.classList.add('in-list'); 
+
+        // 2. Cria o novo item
+        const newItem = { 
+            id: null, // Novo item
+            name: itemName, 
+            priceShibata: 'R$ 0,00', 
+            priceNagumo: 'R$ 0,00', 
+            purchased: false 
+        };
+
+        // 3. Adiciona ao estado local
+        userList.push(newItem);
+
+        // 4. Salva no backend (e reverte em caso de falha)
+        saveUserList(userList, listItem);
+    }
+
+    /**
+     * Busca ambas as listas (mestre e do usuário) e renderiza.
+     */
+    async function fetchAndRenderLists() {
+        const statusMessage = document.getElementById('status-message');
+        statusMessage.textContent = 'Carregando listas...';
+        statusMessage.classList.remove('error');
         statusMessage.style.display = 'block';
-      }
+
+        try {
+            // Busca as duas listas em paralelo
+            const [masterResponse, userResponse] = await Promise.all([
+                fetch(WORKER_URL),
+                fetch(USER_LIST_URL, { headers: getAuthHeaders() })
+            ]);
+
+            if (!masterResponse.ok) throw new Error('Falha ao carregar lista mestre.');
+            if (userResponse.status === 401) return handleLogout(); // Token expirado
+            if (!userResponse.ok) throw new Error('Falha ao carregar sua lista pessoal.');
+
+            const masterItems = await masterResponse.json();
+            const userItems = await userResponse.json();
+
+            allItems = masterItems; // Armazena a lista mestre
+            userList = userItems;   // Armazena a lista do usuário
+
+            // Salva a lista do usuário no cache (para o index.html)
+            const username = localStorage.getItem('currentUser');
+            if (username) {
+                localStorage.setItem(`shoppingList_${username}`, JSON.stringify(userList));
+            }
+
+            renderList(allItems); // Renderiza a lista mestre completa (com ícones)
+
+        } catch (error) {
+            console.error('Falha ao buscar listas:', error);
+            statusMessage.textContent = `Erro ao carregar: ${error.message}`;
+            statusMessage.classList.add('error');
+            statusMessage.style.display = 'block';
+        }
     }
 
     // Executa a função quando a página terminar de carregar
     document.addEventListener('DOMContentLoaded', () => {
-        // 1. Busca a lista inicial de itens
-        fetchShoppingList();
-        
-        // 2. NOVO: Adiciona o "ouvinte" de evento para a barra de pesquisa
+        // 1. Verifica se o usuário está logado
+        if (!checkAuth()) {
+            return; // Interrompe a execução se não estiver logado
+        }
+
+        // 2. Busca as listas
+        fetchAndRenderLists();
+
+        // 3. Adiciona o "ouvinte" de evento para a barra de pesquisa
         const searchInput = document.getElementById('search-input');
-        searchInput.addEventListener('input', handleSearch); // 'input' dispara a cada tecla
+        searchInput.addEventListener('input', handleSearch);
+
+        // 4. NOVO: Adiciona "ouvinte" para cliques na lista (para os botões "+")
+        const listElement = document.getElementById('shopping-list');
+        listElement.addEventListener('click', handleAddItemClick);
     });
+
+    // Listener de conexão (para a função de salvar)
+    window.addEventListener('online', () => isOnline = true);
+    window.addEventListener('offline', () => isOnline = false);
+
 </script>
 </body>
 </html>
