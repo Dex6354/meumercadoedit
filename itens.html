@@ -98,7 +98,7 @@
 
         /* --- ESTILOS ADAPTADOS DO itens.html ORIGINAL --- */
         
-        /* --- Estilo para a barra de pesquisa --- */
+        /* --- Estilo para a barra de pesquisa (AJUSTADO) --- */
         #search-input {
             width: 100%;
             padding: 12px 15px;
@@ -109,7 +109,8 @@
             font-size: 1rem;
             outline: none; /* Remove o outline padrão */
             transition: border-color 0.2s, box-shadow 0.2s;
-            margin-bottom: 16px; /* Espaçamento abaixo da barra */
+            /* REMOVENDO GRANDE PARTE DO ESPAÇAMENTO ABAIXO DA BARRA */
+            margin-bottom: 8px; 
         }
         #search-input::placeholder {
             color: var(--secondary-text-color);
@@ -119,10 +120,13 @@
             box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.2); /* Sombra de foco sutil */
         }
         
+        /* LISTA DE COMPRAS (AJUSTADO) */
         #shopping-list {
             list-style-type: none;
             padding: 0;
             text-align: left;
+            /* REMOVENDO MARGEM SUPERIOR (GARANTE QUE FIQUE PRÓXIMO DA BUSCA) */
+            margin-top: 0; 
         }
         #shopping-list li {
             background-color: var(--input-bg-color); /* Adaptado para o tema escuro */
@@ -268,7 +272,9 @@
             statusMessage.textContent = 'Nenhum item encontrado na pesquisa.';
         }
       } else {
-        statusMessage.textContent = ''; // Limpa a mensagem se houver itens
+        // MOVENDO: Limpando a mensagem aqui, a mensagem status agora será colocada
+        // antes do <ul>.
+        statusMessage.textContent = ''; 
       }
 
       // Adiciona cada item na lista na tela
@@ -277,6 +283,15 @@
         listItem.textContent = item.nome;
         listElement.appendChild(listItem);
       });
+      
+      // AJUSTE LÓGICO: Se houver itens, a mensagem de status deve estar invisível/vazia
+      // mas se for a mensagem de "vazia" ou "nenhum encontrado", ela deve aparecer.
+      // O CSS já garante que o status ocupa 20px, mas vamos reforçar a lógica.
+      if (items.length > 0) {
+          statusMessage.style.display = 'none';
+      } else {
+          statusMessage.style.display = 'block';
+      }
     }
     
     /**
@@ -307,6 +322,7 @@
       // Garante que a mensagem de carregamento e erro seja resetada
       statusMessage.textContent = 'Carregando itens do Cloudflare...';
       statusMessage.classList.remove('error');
+      statusMessage.style.display = 'block'; // Mostra durante o carregamento
 
       try {
         // O navegador vai chamar: https://....pages.dev/shopping-list
@@ -327,6 +343,7 @@
         console.error('Falha ao buscar a lista de compras:', error);
         statusMessage.textContent = `Erro ao carregar a lista: ${error.message}`;
         statusMessage.classList.add('error');
+        statusMessage.style.display = 'block';
       }
     }
 
