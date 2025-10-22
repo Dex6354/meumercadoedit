@@ -98,7 +98,7 @@
 
         /* --- ESTILOS ADAPTADOS DO itens.html ORIGINAL --- */
         
-        /* --- NOVO: Estilo para a barra de pesquisa --- */
+        /* --- Estilo para a barra de pesquisa --- */
         #search-input {
             width: 100%;
             padding: 12px 15px;
@@ -118,7 +118,6 @@
             border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.2); /* Sombra de foco sutil */
         }
-        /* --- FIM DO NOVO ESTILO --- */
         
         #shopping-list {
             list-style-type: none;
@@ -236,8 +235,20 @@
     // Ela aponta para o arquivo /functions/shopping-list.js
     const WORKER_URL = '/api/shopping-list'; // <-- ESTA É A MUDANÇA
 
-    let allItems = []; // <-- NOVO: Armazena a lista completa de itens
+    let allItems = []; // <-- Armazena a lista completa de itens
     
+    /**
+     * NOVO: Função para normalizar strings (remover acentos e converter para minúsculo)
+     * Isso permite que "candida" encontre "Cândida"
+     */
+    function normalizeString(str) {
+        if (!str) return "";
+        return str
+            .toLowerCase() // 1. Converte para minúsculo
+            .normalize("NFD") // 2. Separa acentos (ex: "cândida" -> "c" + "a" + "´" + "n" + "d" + "i" + "d" + "a")
+            .replace(/[\u0300-\u036f]/g, ""); // 3. Remove os acentos (diacríticos)
+    }
+
     /**
      * NOVO: Função dedicada para renderizar a lista na tela.
      * Ela recebe um array de itens (filtrado ou completo) para exibir.
@@ -270,24 +281,27 @@
     
     /**
      * NOVO: Função para lidar com a digitação na barra de pesquisa.
+     * AGORA COM NORMALIZAÇÃO (accent-insensitive)
      */
     function handleSearch() {
         const searchInput = document.getElementById('search-input');
-        // Pega o valor, remove espaços extras e converte para minúsculo
-        const searchTerm = searchInput.value.trim().toLowerCase();
+        
+        // Pega o valor, remove espaços extras e NORMALIZA (remove acentos, minúsculo)
+        const searchTerm = normalizeString(searchInput.value.trim());
         
         // Filtra a lista completa (allItems)
-        const filteredItems = allItems.filter(item => 
-            item.nome.toLowerCase().includes(searchTerm) // Comparação case-insensitive
-        );
+        const filteredItems = allItems.filter(item => {
+            // NORMALIZA o nome do item antes de comparar
+            const normalizedItemName = normalizeString(item.nome);
+            return normalizedItemName.includes(searchTerm); // Comparação normalizada
+        });
         
         // Renderiza apenas os itens filtrados
         renderList(filteredItems);
     }
 
-    // Função para buscar a lista
+    // Função para buscar e enderizar a lista
     async function fetchShoppingList() {
-      // const listElement = document.getElementById('shopping-list'); // Movido para renderList
       const statusMessage = document.getElementById('status-message');
       
       // Garante que a mensagem de carregamento e erro seja resetada
