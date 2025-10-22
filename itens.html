@@ -97,6 +97,29 @@
         .section-header h2 { margin: 0; font-size: 1.5rem; color: var(--primary-color); }
 
         /* --- ESTILOS ADAPTADOS DO itens.html ORIGINAL --- */
+        
+        /* --- NOVO: Estilo para a barra de pesquisa --- */
+        #search-input {
+            width: 100%;
+            padding: 12px 15px;
+            background-color: var(--input-bg-color);
+            color: var(--text-color);
+            border: 1px solid #444; /* Borda sutil */
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            outline: none; /* Remove o outline padrão */
+            transition: border-color 0.2s, box-shadow 0.2s;
+            margin-bottom: 16px; /* Espaçamento abaixo da barra */
+        }
+        #search-input::placeholder {
+            color: var(--secondary-text-color);
+        }
+        #search-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.2); /* Sombra de foco sutil */
+        }
+        /* --- FIM DO NOVO ESTILO --- */
+        
         #shopping-list {
             list-style-type: none;
             padding: 0;
@@ -172,6 +195,8 @@
                     <div class="section-header">
                         <h2>Lista de Itens</h2>
                     </div>
+                    
+                    <input type="text" id="search-input" placeholder="Pesquisar item...">
 
                     <p class="status" id="status-message">Carregando itens do Cloudflare...</p>
                     <ul id="shopping-list">
@@ -211,10 +236,63 @@
     // Ela aponta para o arquivo /functions/shopping-list.js
     const WORKER_URL = '/api/shopping-list'; // <-- ESTA É A MUDANÇA
 
-    // Função para buscar e enderizar a lista
-    async function fetchShoppingList() {
+    let allItems = []; // <-- NOVO: Armazena a lista completa de itens
+    
+    /**
+     * NOVO: Função dedicada para renderizar a lista na tela.
+     * Ela recebe um array de itens (filtrado ou completo) para exibir.
+     */
+    function renderList(items) {
       const listElement = document.getElementById('shopping-list');
       const statusMessage = document.getElementById('status-message');
+
+      // Limpa a lista atual
+      listElement.innerHTML = '';
+
+      if (items.length === 0) {
+        // Verifica se a lista *original* está vazia ou se é um filtro sem resultados
+        if (allItems.length === 0) {
+            statusMessage.textContent = 'A lista de compras está vazia!';
+        } else {
+            statusMessage.textContent = 'Nenhum item encontrado na pesquisa.';
+        }
+      } else {
+        statusMessage.textContent = ''; // Limpa a mensagem se houver itens
+      }
+
+      // Adiciona cada item na lista na tela
+      items.forEach(item => {
+        const listItem = document.createElement('li');
+        listItem.textContent = item.nome;
+        listElement.appendChild(listItem);
+      });
+    }
+    
+    /**
+     * NOVO: Função para lidar com a digitação na barra de pesquisa.
+     */
+    function handleSearch() {
+        const searchInput = document.getElementById('search-input');
+        // Pega o valor, remove espaços extras e converte para minúsculo
+        const searchTerm = searchInput.value.trim().toLowerCase();
+        
+        // Filtra a lista completa (allItems)
+        const filteredItems = allItems.filter(item => 
+            item.nome.toLowerCase().includes(searchTerm) // Comparação case-insensitive
+        );
+        
+        // Renderiza apenas os itens filtrados
+        renderList(filteredItems);
+    }
+
+    // Função para buscar a lista
+    async function fetchShoppingList() {
+      // const listElement = document.getElementById('shopping-list'); // Movido para renderList
+      const statusMessage = document.getElementById('status-message');
+      
+      // Garante que a mensagem de carregamento e erro seja resetada
+      statusMessage.textContent = 'Carregando itens do Cloudflare...';
+      statusMessage.classList.remove('error');
 
       try {
         // O navegador vai chamar: https://....pages.dev/shopping-list
@@ -228,21 +306,8 @@
 
         const items = await response.json();
 
-        // Limpa a mensagem de status e a lista atual
-        statusMessage.textContent = '';
-        listElement.innerHTML = '';
-
-        if (items.length === 0) {
-          statusMessage.textContent = 'A lista de compras está vazia!';
-          return;
-        }
-
-        // Adiciona cada item na lista na tela
-        items.forEach(item => {
-          const listItem = document.createElement('li');
-          listItem.textContent = item.nome;
-          listElement.appendChild(listItem);
-        });
+        allItems = items; // <-- ARMAZENA a lista completa na variável global
+        renderList(allItems); // <-- CHAMA a nova função para renderizar a lista inteira
 
       } catch (error) {
         console.error('Falha ao buscar a lista de compras:', error);
@@ -252,7 +317,14 @@
     }
 
     // Executa a função quando a página terminar de carregar
-    document.addEventListener('DOMContentLoaded', fetchShoppingList);
+    document.addEventListener('DOMContentLoaded', () => {
+        // 1. Busca a lista inicial de itens
+        fetchShoppingList();
+        
+        // 2. NOVO: Adiciona o "ouvinte" de evento para a barra de pesquisa
+        const searchInput = document.getElementById('search-input');
+        searchInput.addEventListener('input', handleSearch); // 'input' dispara a cada tecla
+    });
 </script>
 </body>
 </html>
