@@ -108,7 +108,7 @@
             font-size: 1rem;
             outline: none;
             transition: border-color 0.2s, box-shadow 0.2s;
-            margin-bottom: 8px; 
+            margin-bottom: 8px;
         }
         #search-input::placeholder {
             color: var(--secondary-text-color);
@@ -122,7 +122,7 @@
             list-style-type: none;
             padding: 0;
             text-align: left;
-            margin-top: 12px; 
+            margin-top: 12px;
         }
         #shopping-list li {
             background-color: var(--input-bg-color);
@@ -262,16 +262,16 @@
 
 <script>
     // --- LÓGICA DE UI (Menu) DO LAYOUT ---
-    function openNav() { 
-        document.getElementById("side-menu").classList.add('open'); 
-        document.getElementById("page-overlay").classList.add('show'); 
+    function openNav() {
+        document.getElementById("side-menu").classList.add('open');
+        document.getElementById("page-overlay").classList.add('show');
     }
-    function closeNav() { 
-        document.getElementById("side-menu").classList.remove('open'); 
-        document.getElementById("page-overlay").classList.remove('show'); 
+    function closeNav() {
+        document.getElementById("side-menu").classList.remove('open');
+        document.getElementById("page-overlay").classList.remove('show');
     }
-    document.addEventListener('keydown', (event) => { 
-        if (event.key === "Escape") closeNav(); 
+    document.addEventListener('keydown', (event) => {
+        if (event.key === "Escape") closeNav();
     });
 
     // --- LÓGICA DE AUTENTICAÇÃO (Copiado do index.html) ---
@@ -359,7 +359,7 @@
             statusMessage.textContent = 'Nenhum item encontrado na pesquisa.';
         }
       } else {
-        statusMessage.textContent = ''; 
+        statusMessage.textContent = '';
       }
 
       items.forEach(item => {
@@ -430,7 +430,7 @@
             const mergedItems = await response.json();
 
             // Sucesso: Atualiza o estado global e o cache
-            userList = mergedItems; 
+            userList = mergedItems;
             localStorage.setItem(`shoppingList_${username}`, JSON.stringify(mergedItems));
             console.log('Item adicionado e lista sincronizada.');
 
@@ -465,15 +465,15 @@
 
         // --- Atualização Otimista da UI ---
         // 1. Muda a UI imediatamente
-        listItem.classList.add('in-list'); 
+        listItem.classList.add('in-list');
 
         // 2. Cria o novo item
-        const newItem = { 
+        const newItem = {
             id: null, // Novo item
-            name: itemName, 
-            priceShibata: 'R$ 0,00', 
-            priceNagumo: 'R$ 0,00', 
-            purchased: false 
+            name: itemName,
+            priceShibata: 'R$ 0,00',
+            priceNagumo: 'R$ 0,00',
+            purchased: false
         };
 
         // 3. Adiciona ao estado local
@@ -485,6 +485,8 @@
 
     /**
      * Busca ambas as listas (mestre e do usuário) e renderiza.
+     * MODIFICADO: Agora é resiliente a falhas de rede para a lista do usuário,
+     * usando localStorage como fallback.
      */
     async function fetchAndRenderLists() {
         const statusMessage = document.getElementById('status-message');
@@ -492,38 +494,53 @@
         statusMessage.classList.remove('error');
         statusMessage.style.display = 'block';
 
+        const username = localStorage.getItem('currentUser');
+
         try {
-            // Busca as duas listas em paralelo
-            const [masterResponse, userResponse] = await Promise.all([
-                fetch(WORKER_URL),
-                fetch(USER_LIST_URL, { headers: getAuthHeaders() })
-            ]);
+            // 1. Busca a lista mestre. O Service Worker a servirá do cache se estiver offline.
+            const masterResponse = await fetch(WORKER_URL);
+            if (!masterResponse.ok) {
+                throw new Error('Falha ao carregar a lista mestre de itens.');
+            }
+            allItems = await masterResponse.json();
 
-            if (!masterResponse.ok) throw new Error('Falha ao carregar lista mestre.');
-            if (userResponse.status === 401) return handleLogout(); // Token expirado
-            if (!userResponse.ok) throw new Error('Falha ao carregar sua lista pessoal.');
-
-            const masterItems = await masterResponse.json();
-            const userItems = await userResponse.json();
-
-            allItems = masterItems; // Armazena a lista mestre
-            userList = userItems;   // Armazena a lista do usuário
-
-            // Salva a lista do usuário no cache (para o index.html)
-            const username = localStorage.getItem('currentUser');
-            if (username) {
-                localStorage.setItem(`shoppingList_${username}`, JSON.stringify(userList));
+            // 2. Tenta buscar a lista do usuário, mas com fallback para o localStorage.
+            try {
+                const userResponse = await fetch(USER_LIST_URL, { headers: getAuthHeaders() });
+                if (userResponse.status === 401) return handleLogout(); // Token expirado
+                if (!userResponse.ok) {
+                    // Lança um erro para acionar o bloco catch e usar o localStorage
+                    throw new Error('Falha de rede ao buscar a lista do usuário.');
+                }
+                userList = await userResponse.json();
+                // Se obteve sucesso online, atualiza o cache local
+                if (username) {
+                    localStorage.setItem(`shoppingList_${username}`, JSON.stringify(userList));
+                }
+            } catch (networkError) {
+                console.warn('API da lista do usuário offline. Tentando carregar do cache local (localStorage).');
+                const cachedUserList = localStorage.getItem(`shoppingList_${username}`);
+                if (cachedUserList) {
+                    userList = JSON.parse(cachedUserList);
+                    console.log('Lista do usuário carregada do localStorage.');
+                } else {
+                    // Se não houver cache, usa uma lista vazia para não quebrar a UI
+                    userList = [];
+                    console.warn('Nenhuma lista do usuário no cache local. Usando lista vazia.');
+                }
             }
 
-            renderList(allItems); // Renderiza a lista mestre completa (com ícones)
+            // 3. Renderiza a lista completa com os dados obtidos
+            renderList(allItems);
 
         } catch (error) {
-            console.error('Falha ao buscar listas:', error);
+            console.error('Falha crítica ao buscar listas:', error);
             statusMessage.textContent = `Erro ao carregar: ${error.message}`;
             statusMessage.classList.add('error');
             statusMessage.style.display = 'block';
         }
     }
+
 
     // Executa a função quando a página terminar de carregar
     document.addEventListener('DOMContentLoaded', () => {
