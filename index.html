@@ -202,10 +202,10 @@
         /* --- SEÇÃO DO EMBED --- */
         .iframe-container { position: relative; border-radius: var(--border-radius); overflow: hidden; padding-top: 200%; }
         .iframe-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
-        #iframe-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); display: none; justify-content: center; align-items: center; flex-direction: column; gap: 15px; z-index: 5; color: var(--text-color); text-align: center; }
+        #iframe-overlay, #iframe-overlay-2 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); display: none; justify-content: center; align-items: center; flex-direction: column; gap: 15px; z-index: 5; color: var(--text-color); text-align: center; }
         .loader { border: 4px solid var(--input-bg-color); border-top: 4px solid var(--primary-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #comparator-section { padding-top: 0; padding-bottom: 0; margin-bottom: 24px; }
+        #comparator-section, #comparator-section-2 { padding-top: 0; padding-bottom: 0; margin-bottom: 24px; }
         .collapsible-header { cursor: pointer; padding: 20px 16px; display: flex; justify-content: space-between; align-items: center; }
         .collapsible-header h2 { margin: 0; font-size: 1.5rem; color: var(--primary-color); }
         .collapsible-header .fas.fa-chevron-down { transition: transform 0.3s ease; color: var(--secondary-text-color); }
@@ -282,7 +282,7 @@
 
     <div id="auth-container">
         <div class="auth-box">
-            <h2><i class="fas fa-lock"></i> Acesso Seguro</h2>
+            <h2><i class="fas fa-lock"></i> Acesso Secure</h2>
             <input type="text" id="username" class="auth-input" placeholder="Nome de usuário" autocomplete="username">
             <div class="password-container">
                 <input type="password" id="password" class="auth-input" placeholder="Senha" autocomplete="current-password">
@@ -363,6 +363,30 @@
                         </div>
                         <div class="button-group" style="margin-top: 16px;">
                             <button class="custom-btn" onclick="wakeUpApp()" style="flex-grow: 1;">
+                                <i class="fas fa-sync-alt"></i> Ativar / Atualizar
+                            </button>
+                            <a href="https://precosmercados.streamlit.app/" target="_blank" rel="noopener noreferrer" class="custom-btn secondary" style="flex-grow: 1; text-align: center; text-decoration: none; line-height: 1.8;">
+                                <i class="fas fa-external-link-alt"></i> Abrir em Nova Guia
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section" id="comparator-section-2">
+                    <div class="section-header collapsible-header" onclick="toggleComparator2()">
+                        <h2>Comparador de Preços 2</h2>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div id="comparator-content-2" class="collapsible-content">
+                        <div id="iframe-wrapper-2" class="iframe-container">
+                            <div id="iframe-overlay-2">
+                                <div class="loader"></div>
+                                <span>Acordando o comparador...</span>
+                            </div>
+                            <iframe id="streamlit-app-2" src="https://precosmercados.streamlit.app/?embed=true&minimal=true"></iframe>
+                        </div>
+                        <div class="button-group" style="margin-top: 16px;">
+                            <button class="custom-btn" onclick="wakeUpApp2()" style="flex-grow: 1;">
                                 <i class="fas fa-sync-alt"></i> Ativar / Atualizar
                             </button>
                             <a href="https://precosmercados.streamlit.app/" target="_blank" rel="noopener noreferrer" class="custom-btn secondary" style="flex-grow: 1; text-align: center; text-decoration: none; line-height: 1.8;">
@@ -516,8 +540,13 @@
         document.addEventListener('keydown', (event) => { if (event.key === "Escape") closeNav(); });
 
         function toggleComparator() {
-            document.querySelector('.collapsible-header').classList.toggle('active');
+            document.querySelector('#comparator-section .collapsible-header').classList.toggle('active');
             document.getElementById('comparator-content').classList.toggle('expanded');
+        }
+
+        function toggleComparator2() {
+            document.querySelector('#comparator-section-2 .collapsible-header').classList.toggle('active');
+            document.getElementById('comparator-content-2').classList.toggle('expanded');
         }
 
         // --- Variáveis de Sincronização e Estado ---
@@ -1169,18 +1198,6 @@
                 else nagumo.push(row);
             });
 
-            // REMOVIDO: A ordenação interna por preço (sortByMin) para preservar a ordem de adição/inserção 
-            // DENTRO dos grupos de preço, mantendo o agrupamento principal por status de preço.
-            /*
-            const sortByMin = (a, b) => {
-                const getMin = r => Math.min(parseValueToFloat(r.cells[2].querySelector('input').value) || Infinity, parseValueToFloat(r.cells[3].querySelector('input').value) || Infinity);
-                return getMin(a) - getMin(b);
-            };
-            shibata.sort(sortByMin); 
-            equal.sort(sortByMin); 
-            nagumo.sort(sortByMin);
-            */
-
             // O agrupamento (unpriced -> shibata -> equal -> nagumo) é mantido, garantindo a ordenação primária por status de preço.
             [...unpriced, ...shibata, ...equal, ...nagumo].forEach(row => tableBody.appendChild(row));
         }
@@ -1194,6 +1211,19 @@
             if (streamlitIframe) streamlitIframe.remove();
             const newIframe = document.createElement('iframe');
             newIframe.id = 'streamlit-app';
+            newIframe.src = `https://precosmercados.streamlit.app/?embed=true&minimal=true&t=${new Date().getTime()}`;
+            newIframe.onload = () => { iframeOverlay.style.display = 'none'; };
+            iframeWrapper.prepend(newIframe);
+        }
+
+        function wakeUpApp2() {
+            const iframeWrapper = document.getElementById('iframe-wrapper-2');
+            const iframeOverlay = document.getElementById('iframe-overlay-2');
+            iframeOverlay.style.display = 'flex';
+            let streamlitIframe = document.getElementById('streamlit-app-2');
+            if (streamlitIframe) streamlitIframe.remove();
+            const newIframe = document.createElement('iframe');
+            newIframe.id = 'streamlit-app-2';
             newIframe.src = `https://precosmercados.streamlit.app/?embed=true&minimal=true&t=${new Date().getTime()}`;
             newIframe.onload = () => { iframeOverlay.style.display = 'none'; };
             iframeWrapper.prepend(newIframe);
