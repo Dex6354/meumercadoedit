@@ -374,7 +374,7 @@
 
                 <div class="section" id="comparator-section-2">
                     <div class="section-header collapsible-header" onclick="toggleComparator2()">
-                        <h2>Comparador de Preços 2</h2>
+                        <h2>Busca Preço Auto</h2>
                         <i class="fas fa-chevron-down"></i>
                     </div>
                     <div id="comparator-content-2" class="collapsible-content">
@@ -383,13 +383,13 @@
                                 <div class="loader"></div>
                                 <span>Acordando o comparador...</span>
                             </div>
-                            <iframe id="streamlit-app-2" src="https://precosmercados.streamlit.app/?embed=true&minimal=true"></iframe>
+                            <iframe id="streamlit-app-2" src="https://buscaprecoauto.streamlit.app/?embed=true&minimal=true"></iframe>
                         </div>
                         <div class="button-group" style="margin-top: 16px;">
                             <button class="custom-btn" onclick="wakeUpApp2()" style="flex-grow: 1;">
                                 <i class="fas fa-sync-alt"></i> Ativar / Atualizar
                             </button>
-                            <a href="https://precosmercados.streamlit.app/" target="_blank" rel="noopener noreferrer" class="custom-btn secondary" style="flex-grow: 1; text-align: center; text-decoration: none; line-height: 1.8;">
+                            <a href="https://buscaprecoauto.streamlit.app/" target="_blank" rel="noopener noreferrer" class="custom-btn secondary" style="flex-grow: 1; text-align: center; text-decoration: none; line-height: 1.8;">
                                 <i class="fas fa-external-link-alt"></i> Abrir em Nova Guia
                             </a>
                         </div>
@@ -829,7 +829,7 @@
                 // Só muda para 'saved' se não houver pendências offline
                 if (syncState !== 'offline') setSyncStatus('saved');
 
-            } catch (error) { // <-- Erro de sintaxe estava aqui (corrigido anteriormente)
+            } catch (error) {
                 console.error('Erro ao buscar lista online, usando cache como fallback:', error);
                 setSyncStatus('offline'); 
                 const cachedItems = JSON.parse(localStorage.getItem(cacheKey) || '[]');
@@ -845,9 +845,6 @@
             textarea.style.height = textarea.scrollHeight + 'px';
         }
 
-        // ##################################################################
-        // ## INÍCIO DA CORREÇÃO DE BUG (DUPLICAÇÃO DE ITEM)
-        // ##################################################################
         tableBody.addEventListener('input', (event) => {
             const target = event.target;
             if (target.tagName.toLowerCase() === 'textarea') {
@@ -910,9 +907,6 @@
                 }, 50); 
             }
         }, true);
-        // ##################################################################
-        // ## FIM DA CORREÇÃO DE BUG
-        // ##################################################################
 
 
         // --- Funções do Autocomplete ---
@@ -1020,7 +1014,7 @@
                 return;
             }
 
-            closeAutocomplete(); // Garante que fecha ao comitar
+            closeAutocomplete(); // Garante que deseja fechar ao comitar
 
             const row = itemNameInput.closest('tr');
             const priceShibata = row.cells[2].querySelector('input').value || 'R$ 0,00';
@@ -1224,7 +1218,7 @@
             if (streamlitIframe) streamlitIframe.remove();
             const newIframe = document.createElement('iframe');
             newIframe.id = 'streamlit-app-2';
-            newIframe.src = `https://precosmercados.streamlit.app/?embed=true&minimal=true&t=${new Date().getTime()}`;
+            newIframe.src = `https://buscaprecoauto.streamlit.app/?embed=true&minimal=true&t=${new Date().getTime()}`;
             newIframe.onload = () => { iframeOverlay.style.display = 'none'; };
             iframeWrapper.prepend(newIframe);
         }
