@@ -310,10 +310,10 @@
         .button-group { display: flex; gap: 12px; }
 
         /* --- TABELA E PREÇOS --- */
-        .table-scroll-wrapper { overflow-x: auto; width: 100%; margin-top: 8px; }
+        .table-scroll-wrapper { width: 100%; margin-top: 8px; overflow-x: hidden; }
         .shopping-list-table { width: 100%; border-collapse: separate; border-spacing: 0 8px; table-layout: fixed; }
-        .shopping-list-table th { padding: 12px 16px; font-size: 0.8rem; color: var(--secondary-text-color); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; border: none; }
-        .shopping-list-table td { padding: 8px 16px; background: rgba(255, 255, 255, 0.02); border-top: 1px solid rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.03); vertical-align: middle; transition: all 0.2s ease; }
+        .shopping-list-table th { padding: 12px 8px; font-size: 0.8rem; color: var(--secondary-text-color); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; border: none; }
+        .shopping-list-table td { padding: 8px; background: rgba(255, 255, 255, 0.02); border-top: 1px solid rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.03); vertical-align: middle; transition: all 0.2s ease; }
         .shopping-list-table tr:not(.add-item-row) td:first-child { border-left: 1px solid rgba(255,255,255,0.03); border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
         .shopping-list-table tr:not(.add-item-row) td:last-child { border-right: 1px solid rgba(255,255,255,0.03); border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
         
@@ -322,16 +322,15 @@
             border-color: rgba(255, 255, 255, 0.08);
         }
 
-        .price-cell { width: 100px; text-align: right; }
         .price-cell input { 
             width: 100%; 
-            padding: 10px 8px; 
+            padding: 10px 4px; 
             text-align: right; 
             background-color: transparent; 
             color: var(--text-color); 
             border: 1px solid transparent; 
             border-radius: 8px;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             transition: all 0.2s;
         }
         .price-cell input:focus {
@@ -346,9 +345,9 @@
             background: none; 
             border: 1px solid transparent; 
             color: var(--text-color); 
-            font-size: 1rem; 
+            font-size: 0.95rem; 
             font-family: inherit; 
-            padding: 10px 8px; 
+            padding: 10px 4px; 
             border-radius: 8px; 
             resize: none; 
             overflow-y: hidden; 
@@ -369,6 +368,8 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            width: 32px;
+            height: 32px;
         }
         .shopping-list-table .action-btn:hover { color: var(--danger-color); background-color: rgba(255,71,87,0.1); }
         .shopping-list-table .action-btn.add { color: var(--primary-color); }
@@ -391,6 +392,7 @@
             display: inline-grid;
             place-content: center;
             transition: all 0.2s;
+            margin: 0 auto;
         }
         .shopping-list-table td input[type="checkbox"]::before {
             content: "\f00c";
@@ -482,17 +484,34 @@
         .suggestion-item:last-child { border-bottom: none; }
         .suggestion-item:hover { background-color: rgba(255,255,255,0.08); }
 
-        /* Responsividade em Telas Menores */
+        /* Definição de tamanhos fixos e proporcionais por colunas para evitar estouro horizontal */
+        .shopping-list-table colgroup col:nth-child(1) { width: 35px; }
+        .shopping-list-table colgroup col:nth-child(2) { width: auto; }
+        .shopping-list-table colgroup col:nth-child(3) { width: 85px; }
+        .shopping-list-table colgroup col:nth-child(4) { width: 85px; }
+        .shopping-list-table colgroup col:nth-child(5) { width: 40px; }
+
+        /* Responsividade em Telas Menores (Garante ajuste fluido no mobile sem quebrar ou gerar scroll) */
         @media (max-width: 480px) {
             .container { padding: 12px; }
-            .section { padding: 16px; border-radius: 12px; }
+            .section { padding: 16px 12px; border-radius: 12px; }
             .header { padding: 12px 16px; }
-            .shopping-list-table th, .shopping-list-table td { padding: 8px; }
-            .price-cell { width: 85px; }
+            .shopping-list-table th, .shopping-list-table td { padding: 6px 4px; }
+            .shopping-list-table th { font-size: 0.75rem; }
+            .price-cell input { font-size: 0.85rem; padding: 8px 2px; }
+            .item-name-input { font-size: 0.85rem; padding: 8px 2px; }
+            .shopping-list-table colgroup col:nth-child(1) { width: 30px; }
+            .shopping-list-table colgroup col:nth-child(3) { width: 75px; }
+            .shopping-list-table colgroup col:nth-child(4) { width: 75px; }
+            .shopping-list-table colgroup col:nth-child(5) { width: 35px; }
         }
 
-        @media (min-width: 768px) { .shopping-list-table colgroup col:nth-child(2) { width: 450px; } }
-        @media (min-width: 1024px) { .shopping-list-table colgroup col:nth-child(2) { width: 550px; } }
+        @media (min-width: 768px) { 
+            .shopping-list-table colgroup col:nth-child(1) { width: 45px; }
+            .shopping-list-table colgroup col:nth-child(3) { width: 110px; }
+            .shopping-list-table colgroup col:nth-child(4) { width: 110px; }
+            .shopping-list-table colgroup col:nth-child(5) { width: 45px; }
+        }
     </style>
 </head>
 <body>
@@ -550,11 +569,11 @@
                     <div class="table-scroll-wrapper">
                         <table class="shopping-list-table">
                             <colgroup>
-                                <col style="width: 45px;"> <col style="width: 230px;"> <col style="width: 95px;"> <col style="width: 95px;"> <col style="width: 45px;"> </colgroup>
+                                <col> <col> <col> <col> <col> </colgroup>
                             <thead>
                                 <tr>
                                     <th><i class="fas fa-check"></i></th>
-                                    <th>Item</th>
+                                    <th style="text-align: left; padding-left: 4px;">Item</th>
                                     <th>Shibata</th>
                                     <th>Nagumo</th>
                                     <th></th>
@@ -657,7 +676,7 @@
             }
 
             loadList();
-            startPolling(); // Inicia a verificação contínua por atualizações
+            startPolling(); 
         }
 
         function showAuth(message = '', isError = false) {
@@ -720,7 +739,7 @@
         }
 
         async function handleLogout() {
-            stopPolling(); // Para a verificação contínua ao sair
+            stopPolling(); 
             const token = localStorage.getItem('authToken');
             if (token) {
                 try {
@@ -739,7 +758,7 @@
                  localStorage.removeItem(`offlineList_${username}`);
                  localStorage.removeItem(`pendingDeletes_${username}`);
             }
-            localStorage.removeItem('currentUser'); // Deve ser removido por último
+            localStorage.removeItem('currentUser'); 
             location.reload();
         }
 
@@ -1137,7 +1156,7 @@
                 <td><textarea id="newItemName" class="item-name-input" placeholder="Adicionar item" rows="1"></textarea></td>
                 <td class="price-cell"><input type="text" placeholder="R$ 0,00"></td>
                 <td class="price-cell"><input type="text" placeholder="R$ 0,00"></td>
-                <td><button class="action-btn add" onclick="commitItem()"><i class="fas fa-plus"></i></button></td>
+                <td style="text-align: center;"><button class="action-btn add" onclick="commitItem()"><i class="fas fa-plus"></i></button></td>
             `;
             const newItemInput = document.getElementById('newItemName');
             newItemInput.addEventListener('keydown', (event) => {
@@ -1191,7 +1210,7 @@
                 <td><textarea class="item-name-input" rows="1">${itemData.name}</textarea></td>
                 <td class="price-cell">${getPriceInputHTML(itemData.priceShibata)}</td>
                 <td class="price-cell">${getPriceInputHTML(itemData.priceNagumo)}</td>
-                <td><button class="action-btn" onclick="removeItem(this)"><i class="fas fa-trash-alt"></i></button></td>
+                <td style="text-align: center;"><button class="action-btn" onclick="removeItem(this)"><i class="fas fa-trash-alt"></i></button></td>
             `;
             autoResizeTextarea(newRow.cells[1].querySelector('textarea'));
             comparePrices(newRow.cells[2].querySelector('input'));
