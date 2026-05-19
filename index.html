@@ -10,6 +10,7 @@
     <meta property="og:description" content="Sua lista de compras inteligente com comparador de preços e otimização." />
     <meta property="og:image" content="https://meumercado.pages.dev/01.png" />
 
+
     <link rel="icon" href="01.png" type="image/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
@@ -79,7 +80,7 @@
         }
         .password-container .auth-input {
             margin-bottom: 0;
-            padding-right: 40px;
+            padding-right: 40px; /* Espaço para o ícone */
         }
         #togglePassword {
             position: absolute;
@@ -104,6 +105,7 @@
             font-size: 0.9rem;
         }
 
+        /* Ocultar app-container por padrão */
         #app-container {
             display: none;
         }
@@ -131,13 +133,13 @@
         .header .title i { margin-right: 8px; color: var(--primary-color); }
 
         /* --- SIDE MENU & OVERLAY --- */
-        .side-menu { height: 100%; width: 0; position: fixed; z-index: 1001; top: 0; left: 0; background-color: var(--card-color); overflow-x: hidden; transition: width 0.3s ease; padding-top: 60px; box-shadow: 2px 0 10px rgba(0,0,0,0.5); }
+        .side-menu { height: 100%; width: 0; position: fixed; z-index: 1001; top: 0; left: 0; background-color: var(--card-color); overflow-x: hidden; transition: 0.3s; padding-top: 60px; box-shadow: 2px 0 10px rgba(0,0,0,0.5); }
         .side-menu.open { width: var(--menu-width); }
         .side-menu .close-btn { position: absolute; top: 15px; right: 25px; font-size: 2rem; color: var(--primary-color); cursor: pointer; line-height: 1; }
-        .side-menu a { padding: 15px 20px; text-decoration: none; font-size: 1.1rem; color: var(--text-color); display: block; transition: color 0.2s ease, background-color 0.2s ease; border-bottom: 1px solid var(--input-bg-color); }
+        .side-menu a { padding: 15px 20px; text-decoration: none; font-size: 1.1rem; color: var(--text-color); display: block; transition: 0.3s; border-bottom: 1px solid var(--input-bg-color); }
         .side-menu a:hover { background-color: #575757; color: var(--primary-color); }
         .side-menu a i { color: var(--primary-color); width: 20px; text-align: center; margin-right: 10px; }
-        #page-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 1000; display: none; }
+        #page-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 1000; display: none; transition: opacity 0.3s; }
         #page-overlay.show { display: block; }
 
         /* --- CONTEÚDO PRINCIPAL --- */
@@ -163,15 +165,16 @@
         .shopping-list-section .section-header { padding: 20px 16px 16px 16px; }
         .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
         .section-header h2 { margin: 0; font-size: 1.5rem; color: var(--primary-color); }
-        .section-header .clear-btn { background: none; border: none; color: var(--danger-color); cursor: pointer; font-size: 1.2rem; transition: color 0.2s ease; padding: 5px; }
+        .section-header .clear-btn { background: none; border: none; color: var(--danger-color); cursor: pointer; font-size: 1.2rem; transition: color 0.3s; padding: 5px; }
         .section-header .clear-btn:hover { color: #ff7961; }
 
         /* --- BOTÕES --- */
-        .custom-btn { background-color: var(--primary-color); color: var(--bg-color); border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: bold; padding: 10px 15px; transition: background-color 0.2s ease; }
+        .custom-btn { background-color: var(--primary-color); color: var(--bg-color); border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: bold; padding: 10px 15px; transition: background-color 0.3s; }
         .custom-btn:hover { background-color: #ffd54f; }
         .custom-btn.secondary { background-color: var(--input-bg-color); color: var(--text-color); }
         .custom-btn.secondary:hover { background-color: #555; }
         .button-group { display: flex; gap: 10px; }
+        .button-group .custom-btn, .button-group a { border-radius: 8px; }
 
         /* --- TABELA E PREÇOS --- */
         .table-scroll-wrapper { overflow-x: auto; width: 100%; }
@@ -184,9 +187,9 @@
         .price-cell input { width: 100%; padding: 12px 8px; text-align: right; background-color: var(--card-color); color: var(--text-color); border: none; border-radius: 0 !important; }
         .price-cell input.default-price { color: var(--secondary-text-color) !important; }
         .price-cell:first-of-type { border-right: 1px solid var(--input-bg-color); }
-        .item-name-input { width: 100%; background: none; border: none; color: var(--text-color); font-size: 1rem; font-family: inherit; padding: 4px 0; border-radius: 4px; resize: none; overflow-y: hidden; line-height: 1.4; transition: background-color 0.2s ease; }
+        .item-name-input { width: 100%; background: none; border: none; color: var(--text-color); font-size: 1rem; font-family: inherit; padding: 4px 0; border-radius: 4px; resize: none; overflow-y: hidden; line-height: 1.4; transition: all 0.2s ease-in-out; }
         .item-name-input:focus { outline: none; background-color: var(--input-bg-color); }
-        .shopping-list-table .action-btn { background: none; border: none; color: var(--danger-color); cursor: pointer; font-size: 1.2rem; transition: color 0.2s ease; padding: 0; }
+        .shopping-list-table .action-btn { background: none; border: none; color: var(--danger-color); cursor: pointer; font-size: 1.2rem; transition: color 0.3s; padding: 0; }
         .shopping-list-table .action-btn:hover { color: #ff7961; }
         .shopping-list-table .action-btn.add { color: var(--green-highlight); }
         .shopping-list-table .action-btn.add:hover { color: #81c784; }
@@ -194,25 +197,21 @@
         .cheapest-price::before { content: "✔ "; }
         .equal-price { color: var(--primary-color) !important; font-weight: bold; }
         .shopping-list-table td input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
-        .purchased .item-name-input { text-decoration: line-through; color: var(--secondary-text-color); }
+        .purchased .item-name-input, .purchased input[type="text"] { text-decoration: line-through; color: var(--secondary-text-color); }
 
-        /* --- SEÇÃO DO EMBED (OTIMIZAÇÃO DE PERFORMANCE) --- */
+        /* --- SEÇÃO DO EMBED --- */
         .iframe-container { position: relative; border-radius: var(--border-radius); overflow: hidden; padding-top: 200%; }
         .iframe-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
         #iframe-overlay, #iframe-overlay-2 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); display: none; justify-content: center; align-items: center; flex-direction: column; gap: 15px; z-index: 5; color: var(--text-color); text-align: center; }
         .loader { border: 4px solid var(--input-bg-color); border-top: 4px solid var(--primary-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
         #comparator-section, #comparator-section-2 { padding-top: 0; padding-bottom: 0; margin-bottom: 24px; }
         .collapsible-header { cursor: pointer; padding: 20px 16px; display: flex; justify-content: space-between; align-items: center; }
         .collapsible-header h2 { margin: 0; font-size: 1.5rem; color: var(--primary-color); }
-        .collapsible-header .fas.fa-chevron-down { transition: transform 0.2s ease; color: var(--secondary-text-color); }
+        .collapsible-header .fas.fa-chevron-down { transition: transform 0.3s ease; color: var(--secondary-text-color); }
         .collapsible-header.active .fas.fa-chevron-down { transform: rotate(180deg); }
-        
-        /* Ajuste Avançado CSS: Substituição de max-height por display para evitar reflows pesados */
-        .collapsible-content { display: none; padding: 0 16px; }
-        .collapsible-content.expanded { display: block; padding-bottom: 20px; }
-        
+        .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-out; padding: 0 16px; }
+        .collapsible-content.expanded { max-height: 100vh; padding-bottom: 20px; }
         .footer { text-align: center; padding: 16px; color: var(--secondary-text-color); font-size: 0.875rem; background-color: #282828; margin-top: auto; width: 100%; }
 
         #sync-status-indicator { 
@@ -221,7 +220,7 @@
             border-radius: 50%; 
             background-color: var(--green-highlight); 
             z-index: 11; 
-            transition: background-color 0.3s ease; 
+            transition: background-color 0.5s ease; 
             flex-shrink: 0;
         }
 
@@ -250,7 +249,7 @@
             border: 1px solid var(--primary-color);
             border-top: none;
             border-radius: 0 0 8px 8px;
-            z-index: 1002;
+            z-index: 1002; /* Mais alto que o overlay do menu */
             max-height: 200px;
             overflow-y: auto;
             display: none;
@@ -264,9 +263,11 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            /* NOVO: Linha cinza entre itens */
             border-bottom: 1px solid #666; 
         }
         .suggestion-item:last-child {
+            /* Remove a borda do último item para não duplicar o contorno */
             border-bottom: none; 
         }
         .suggestion-item:hover {
@@ -318,7 +319,7 @@
                     <span id="username-display"></span>
                     <div id="sync-status-indicator"></div>
                 </div>
-            </div>
+                </div>
 
             <div class="container">
                 <div class="section shopping-list-section">
@@ -405,8 +406,10 @@
     <div id="autocomplete-suggestions"></div>
 
     <script>
+        // --- CONSTANTE DA API DE ITENS ---
         const WORKER_URL = '/api/shopping-list';
 
+        // --- GERENCIAMENTO DE AUTENTICAÇÃO ---
         const authContainer = document.getElementById('auth-container');
         const appContainer = document.getElementById('app-container');
         const authMessage = document.getElementById('auth-message');
@@ -437,7 +440,7 @@
             }
 
             loadList();
-            startPolling();
+            startPolling(); // Inicia a verificação contínua por atualizações
         }
 
         function showAuth(message = '', isError = false) {
@@ -500,7 +503,7 @@
         }
 
         async function handleLogout() {
-            stopPolling();
+            stopPolling(); // Para a verificação contínua ao sair
             const token = localStorage.getItem('authToken');
             if (token) {
                 try {
@@ -513,13 +516,14 @@
                 }
             }
             localStorage.removeItem('authToken');
+            // ATUALIZADO: Remove chaves de usuário específicas ao sair
             const username = localStorage.getItem('currentUser');
             if (username) {
                  localStorage.removeItem(`shoppingList_${username}`);
                  localStorage.removeItem(`offlineList_${username}`);
                  localStorage.removeItem(`pendingDeletes_${username}`);
             }
-            localStorage.removeItem('currentUser');
+            localStorage.removeItem('currentUser'); // Deve ser removido por último
             location.reload();
         }
 
@@ -545,31 +549,36 @@
             document.getElementById('comparator-content-2').classList.toggle('expanded');
         }
 
+        // --- Variáveis de Sincronização e Estado ---
         const tableBody = document.getElementById('shopping-list-body');
         const statusIndicator = document.getElementById('sync-status-indicator');
-        const autocompleteSuggestions = document.getElementById('autocomplete-suggestions'); 
+        const autocompleteSuggestions = document.getElementById('autocomplete-suggestions'); // Variável para o Autocomplete
         let saveTimeout;
         let syncState = 'saved';
         let isOnline = navigator.onLine;
-        let pollingIntervalId = null; 
+        let pollingIntervalId = null; // ID para o intervalo do polling
 
+        // --- Autocomplete Item List (Loaded from KV) ---
         let itensList = [];
 
         async function carregarItens() {
             try {
+                // ALTERADO: Agora busca do endpoint da API (Cloudflare KV)
                 const response = await fetch(WORKER_URL); 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 itensList = await response.json();
+                console.log(`Itens de Autocomplete carregados: ${itensList.length}`);
             } catch (error) {
-                console.error('Falha ao carregar lista de itens da API:', error);
+                console.error('Falha ao carregar lista de itens da API (Pode ser o primeiro acesso offline):', error);
                 itensList = [];
             }
         }
 
-        let currentActiveInput = null;
+        let currentActiveInput = null; // Input ativo para o Autocomplete
 
+        // --- FUNÇÃO ADICIONADA: Normaliza string para comparação sem acentos ---
         function normalizeString(str) {
             return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
         }
@@ -582,6 +591,7 @@
             }
         }
 
+        // --- LÓGICA DE POLLING (SINCRONIZAÇÃO CONTÍNUA) ---
         function stopPolling() {
             if (pollingIntervalId) {
                 clearInterval(pollingIntervalId);
@@ -590,13 +600,14 @@
         }
 
         function startPolling() {
-            stopPolling();
-            pollingIntervalId = setInterval(pollForChanges, 4000);
+            stopPolling(); // Garante que não haja múltiplos intervalos rodando
+            pollingIntervalId = setInterval(pollForChanges, 4000); // Verifica por mudanças a cada 4 segundos
         }
 
         async function pollForChanges() {
             const activeEl = document.activeElement;
 
+            // Bloqueia rigidamente o polling se estiver sincronizando ou enviando dados
             if (!isOnline || 
                 document.hidden || 
                 syncState === 'syncing' || 
@@ -613,10 +624,17 @@
                 const remoteItems = await response.json();
                 const localItems = getCurrentLocalItems();
 
+                // Ignora itens novos (sem ID ainda) da contagem local para evitar falsos positivos de duplicação antes do retorno do fetch
+                const localHasUnsavedItems = localItems.some(item => !item.id);
+                if (localHasUnsavedItems) return;
+
+                // Compara garantindo consistência estrita de IDs
                 if (JSON.stringify(remoteItems) !== JSON.stringify(localItems)) {
-                    redrawTable(remoteItems, false);
+                    redrawTable(remoteItems, false); // Redesenha a tabela sem focar no campo de novo item
                 }
-            } catch (error) { }
+            } catch (error) {
+                // Falha silenciosa para rede instável
+            }
         }
 
         function debounce(func, delay) {
@@ -644,6 +662,7 @@
             return items;
         }
 
+        // --- LÓGICA DE SINCRONIZAÇÃO E CACHE OFFLINE ---
         async function saveList() {
             const items = getCurrentLocalItems();
             const username = localStorage.getItem('currentUser');
@@ -651,9 +670,12 @@
 
             const pendingDeletes = JSON.parse(localStorage.getItem(`pendingDeletes_${username}`) || '[]');
 
+            // Cache ativo imediatamente - mantém a edição offline sem travar
+            localStorage.setItem(`offlineList_${username}`, JSON.stringify(items));
+            localStorage.setItem(`shoppingList_${username}`, JSON.stringify(items));
+
             if (!isOnline) {
                 setSyncStatus('offline');
-                localStorage.setItem(`offlineList_${username}`, JSON.stringify(items));
                 return;
             }
 
@@ -675,6 +697,7 @@
                 if (!response.ok) throw new Error('Falha ao salvar no servidor.');
 
                 const mergedItems = await response.json();
+
                 setSyncStatus('saved');
 
                 localStorage.setItem(`shoppingList_${username}`, JSON.stringify(mergedItems));
@@ -687,6 +710,7 @@
                 if (!isTypingInTable) {
                     redrawTable(mergedItems, false); 
                 }
+
             } catch (error) {
                 setSyncStatus('error');
                 console.error("Erro ao salvar online:", error);
@@ -700,7 +724,9 @@
             const pendingItemsJSON = localStorage.getItem(`offlineList_${username}`);
             const pendingDeletes = JSON.parse(localStorage.getItem(`pendingDeletes_${username}`) || '[]');
 
-            if (!pendingItemsJSON && pendingDeletes.length === 0) return;
+            if (!pendingItemsJSON && pendingDeletes.length === 0) {
+                return;
+            }
 
             try {
                 const localOfflineItems = pendingItemsJSON
@@ -709,6 +735,7 @@
 
                 setSyncStatus('syncing');
                 await saveListOnline(localOfflineItems, pendingDeletes);
+
             } catch (error) {
                 console.error("Falha ao sincronizar as alterações offline:", error);
                 setSyncStatus('error');
@@ -730,7 +757,9 @@
                 return;
             }
 
-            if (pendingDeletes.length > 0) setSyncStatus('offline');
+            if (pendingDeletes.length > 0) {
+                setSyncStatus('offline');
+            }
 
             if (!isOnline) {
                 if (syncState !== 'offline') setSyncStatus('offline');
@@ -749,7 +778,9 @@
                 localStorage.setItem(cacheKey, JSON.stringify(remoteItems));
                 redrawTable(remoteItems, true);
                 if (syncState !== 'offline') setSyncStatus('saved');
+
             } catch (error) {
+                console.error('Erro ao buscar lista online, usando cache como fallback:', error);
                 setSyncStatus('offline'); 
                 const cachedItems = JSON.parse(localStorage.getItem(cacheKey) || '[]');
                 redrawTable(cachedItems);
@@ -758,6 +789,7 @@
 
         const debouncedSave = debounce(saveList, 1500);
 
+        // --- Funções de UI ---
         function autoResizeTextarea(textarea) {
             textarea.style.height = 'auto';
             textarea.style.height = textarea.scrollHeight + 'px';
@@ -770,7 +802,7 @@
 
                 if (target.classList.contains('item-name-input')) { 
                     currentActiveInput = target; 
-                    requestTick(); 
+                    updateAutocompletePosition(); 
                     debouncedHandleAutocomplete(event); 
                 }
             }
@@ -794,10 +826,9 @@
             }
             if (target.tagName.toLowerCase() === 'textarea' && target.classList.contains('item-name-input')) { 
                 currentActiveInput = target; 
-                requestTick();
                 handleAutocompleteInput(event); 
             } else if (target.tagName.toLowerCase() === 'textarea') {
-                 closeAutocomplete();
+                 激closeAutocomplete();
             }
         }, true);
 
@@ -821,8 +852,8 @@
             }
         }, true);
 
-        /* --- OTIMIZAÇÃO GLOBAL DE EVENTOS (requestAnimationFrame) --- */
-        let ticking = false;
+
+        // --- Funções do Autocomplete ---
 
         function updateAutocompletePosition() {
             if (currentActiveInput) { 
@@ -831,19 +862,9 @@
                 autocompleteSuggestions.style.left = `${rect.left + window.scrollX}px`;
                 autocompleteSuggestions.style.width = `${rect.width + 16}px`;
             }
-            ticking = false;
         }
-
-        function requestTick() {
-            if (!ticking) {
-                requestAnimationFrame(updateAutocompletePosition);
-                ticking = true;
-            }
-        }
-
-        // Troca dos listeners diretos por chamadas via rAF para reduzir consumo de CPU
-        window.addEventListener('scroll', requestTick, { passive: true });
-        window.addEventListener('resize', requestTick, { passive: true });
+        window.addEventListener('scroll', updateAutocompletePosition, true);
+        window.addEventListener('resize', updateAutocompletePosition);
 
         function closeAutocomplete() {
             autocompleteSuggestions.style.display = 'none';
@@ -852,7 +873,7 @@
         const handleAutocompleteInput = (event) => {
             const inputText = (event.target.value || '').trim();
             currentActiveInput = event.target; 
-            requestTick(); 
+            updateAutocompletePosition(); 
 
             if (inputText.length < 1 || !itensList || itensList.length === 0) {
                 autocompleteSuggestions.style.display = 'none';
@@ -881,7 +902,7 @@
         autocompleteSuggestions.addEventListener('mousedown', (event) => {
             const suggestionItem = event.target.closest('.suggestion-item');
             if (suggestionItem && currentActiveInput) {
-                event.preventDefault();
+                event.preventDefault(); 
                 const nome = suggestionItem.dataset.name;
                 currentActiveInput.value = nome;
 
@@ -896,6 +917,7 @@
                 }
             }
         });
+
 
         function createAddItemRow(shouldFocus = false) {
             document.querySelector('.add-item-row')?.remove();
@@ -926,7 +948,7 @@
                 return;
             }
 
-            closeAutocomplete();
+            closeAutocomplete(); 
 
             const row = itemNameInput.closest('tr');
             const priceShibata = row.cells[2].querySelector('input').value || 'R$ 0,00';
@@ -1032,6 +1054,7 @@
             }
         }
 
+        // --- Eventos de Conexão ---
         window.addEventListener('online', async () => {
             isOnline = true;
             await syncOfflineChanges(); 
@@ -1044,6 +1067,7 @@
             setSyncStatus('offline');
         });
 
+        // --- Funções de Formatação e Comparação de Preços ---
         function formatCurrency(input) {
             const value = input.value.trim();
             const number = parseValueToFloat(value);
@@ -1097,6 +1121,7 @@
             [...unpriced, ...shibata, ...equal, ...nagumo].forEach(row => tableBody.appendChild(row));
         }
 
+        // --- Funções Auxiliares (Streamlit, Teclado Virtual) ---
         function wakeUpApp() {
             const iframeWrapper = document.getElementById('iframe-wrapper');
             const iframeOverlay = document.getElementById('iframe-overlay');
@@ -1138,6 +1163,7 @@
             });
         }
 
+        // --- INICIALIZAÇÃO DA APLICAÇÃO ---
         document.addEventListener('DOMContentLoaded', async () => {
             await carregarItens();
 
