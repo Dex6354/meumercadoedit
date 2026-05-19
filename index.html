@@ -566,12 +566,17 @@
                 // ALTERADO: Agora busca do endpoint da API (Cloudflare KV)
                 const response = await fetch(WORKER_URL); 
                 if (!response.ok) {
+                    // Se a rede falhar E não houver cache (primeiro acesso offline), 
+                    // a promise pode ser rejeitada ou o status ser 503 (offline).
+                    // O SW deve retornar a versão em cache. Se chegou aqui, 
+                    // significa que falhou na rede E o SW não tinha cache.
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 itensList = await response.json();
                 console.log(`Itens de Autocomplete carregados: ${itensList.length}`);
             } catch (error) {
                 console.error('Falha ao carregar lista de itens da API (Pode ser o primeiro acesso offline):', error);
+                // Fallback to empty list
                 itensList = [];
             }
         }
@@ -607,14 +612,19 @@
         async function pollForChanges() {
             const activeEl = document.activeElement;
 
-            // Bloqueia rigidamente o polling se estiver sincronizando ou enviando dados
+            // Pula o polling se:
+            // 1. Está offline
+            // 2. A aba está oculta
+            // 3. Uma sincronização (saveList) já está em andamento (CRUCIAL)
+            // 4. O usuário está digitando ativamente na tabela
             if (!isOnline || 
                 document.hidden || 
-                syncState === 'syncing' || 
+                syncState === 'syncing' || // <-- CORREÇÃO DA RACE CONDITION (Preço sumindo)
                 (activeEl && ['INPUT', 'TEXTAREA'].includes(activeEl.tagName) && tableBody.contains(activeEl))) 
             {
                 return;
             }
+
 
             try {
                 const response = await fetch('/api/list', { headers: getAuthHeaders() });
@@ -624,16 +634,13 @@
                 const remoteItems = await response.json();
                 const localItems = getCurrentLocalItems();
 
-                // Ignora itens novos (sem ID ainda) da contagem local para evitar falsos positivos de duplicação antes do retorno do fetch
-                const localHasUnsavedItems = localItems.some(item => !item.id);
-                if (localHasUnsavedItems) return;
-
-                // Compara garantindo consistência estrita de IDs
+                // Compara a lista remota com a local. Se forem diferentes, atualiza a tela.
+                // Esta comparação agora inclui IDs, então é mais robusta.
                 if (JSON.stringify(remoteItems) !== JSON.stringify(localItems)) {
                     redrawTable(remoteItems, false); // Redesenha a tabela sem focar no campo de novo item
                 }
             } catch (error) {
-                // Falha silenciosa para rede instável
+                // Falha silenciosa para não poluir o console com erros de rede
             }
         }
 
@@ -651,6 +658,7 @@
                 const name = row.cells[1].querySelector('textarea').value.trim();
                 if (name) {
                     items.push({
+                        // ATUALIZADO: Inclui o ID do item
                         id: row.dataset.id ? parseInt(row.dataset.id) : null,
                         name: name,
                         priceShibata: row.cells[2].querySelector('input').value || 'R$ 0,00',
@@ -668,17 +676,20 @@
             const username = localStorage.getItem('currentUser');
             if (!username) return;
 
+            // ATUALIZADO: Busca exclusões pendentes
             const pendingDeletes = JSON.parse(localStorage.getItem(`pendingDeletes_${username}`) || '[]');
-
-            // Cache ativo imediatamente - mantém a edição offline sem travar
-            localStorage.setItem(`offlineList_${username}`, JSON.stringify(items));
-            localStorage.setItem(`shoppingList_${username}`, JSON.stringify(items));
 
             if (!isOnline) {
                 setSyncStatus('offline');
+                console.log("Offline: Salvando alterações localmente.");
+                // Salva os itens modificados
+                localStorage.setItem(`offlineList_${username}`, JSON.stringify(items));
+                // As exclusões pendentes já estão salvas no localStorage, então não faz mais nada
                 return;
             }
 
+            // CORREÇÃO: Define 'syncing' aqui, *antes* do await,
+            // para que o pollForChanges pare imediatamente.
             setSyncStatus('syncing'); 
             await saveListOnline(items, pendingDeletes);
         }
@@ -687,28 +698,47 @@
             const username = localStorage.getItem('currentUser');
             if (!username) return;
 
+            // 'syncing' já foi definido em saveList()
+            // setSyncStatus('syncing'); 
             try {
                 const response = await fetch('/api/list', {
                     method: 'POST',
                     headers: getAuthHeaders(),
+                    // ATUALIZADO: Envia um objeto com 'items' e 'deletes'
                     body: JSON.stringify({ items: items, deletes: deletes })
                 });
                 if (response.status === 401) return handleLogout();
                 if (!response.ok) throw new Error('Falha ao salvar no servidor.');
 
+                // ATUALIZADO: O servidor agora retorna a lista mesclada e autoritativa
                 const mergedItems = await response.json();
 
                 setSyncStatus('saved');
 
+                // Salva a lista autoritativa (com novos IDs) no cache principal
                 localStorage.setItem(`shoppingList_${username}`, JSON.stringify(mergedItems));
+
+                // Limpa as pendências offline (itens e deletes) APÓS o sucesso
                 localStorage.removeItem(`offlineList_${username}`);
                 localStorage.removeItem(`pendingDeletes_${username}`);
 
+                // ATUALIZADO: Redesenha a tabela com a lista do servidor
+                // Isso é crucial para que os novos itens recebam seus IDs corretos no DOM
+
+                // CORREÇÃO: Não redesenha a tabela se o usuário estiver
+                // ativamente digitando em um campo, para evitar perda de dados/foco.
                 const activeEl = document.activeElement;
                 const isTypingInTable = activeEl && ['INPUT', 'TEXTAREA'].includes(activeEl.tagName) && tableBody.contains(activeEl);
 
                 if (!isTypingInTable) {
+                    // Passa 'false' para não roubar o foco para o campo "novo item"
                     redrawTable(mergedItems, false); 
+                } else {
+                    // O usuário está digitando. Não redesenhe agora.
+                    // A lista em cache foi atualizada, o próximo
+                    // 'pollForChanges' (quando o usuário parar de digitar) 
+                    // vai sincronizar a UI.
+                    console.log("Usuário digitando, adiando redesenho da UI.");
                 }
 
             } catch (error) {
@@ -717,24 +747,37 @@
             }
         }
 
+        // --- LÓGICA DE SINCRONIZAÇÃO DE ALTERAÇÕES OFFLINE (CORRIGIDO) ---
         async function syncOfflineChanges() {
             const username = localStorage.getItem('currentUser');
             if (!username) return;
 
             const pendingItemsJSON = localStorage.getItem(`offlineList_${username}`);
+            // ATUALIZADO: Carrega também as exclusões pendentes
             const pendingDeletes = JSON.parse(localStorage.getItem(`pendingDeletes_${username}`) || '[]');
 
+            // Se não há itens pendentes E não há exclusões pendentes, não faz nada
             if (!pendingItemsJSON && pendingDeletes.length === 0) {
+                console.log("Nenhuma alteração offline para sincronizar.");
                 return;
             }
 
+            console.log("Conectado. Sincronizando alterações pendentes...");
+
             try {
+                // Se 'pendingItemsJSON' existir, usa ele (é a fonte da verdade offline)
+                // Se não, usa a lista do cache (mas ainda pode haver 'pendingDeletes' para enviar)
                 const localOfflineItems = pendingItemsJSON
                     ? JSON.parse(pendingItemsJSON)
                     : JSON.parse(localStorage.getItem(`shoppingList_${username}`) || '[]');
 
+                // ATUALIZADO: Envia itens e exclusões pendentes
+
+                // CORREÇÃO: Define 'syncing' aqui, *antes* do await
                 setSyncStatus('syncing');
                 await saveListOnline(localOfflineItems, pendingDeletes);
+
+                // O 'redrawTable' agora é chamado DENTRO de 'saveListOnline'
 
             } catch (error) {
                 console.error("Falha ao sincronizar as alterações offline:", error);
@@ -748,26 +791,32 @@
 
             const offlineKey = `offlineList_${username}`;
             const cacheKey = `shoppingList_${username}`;
+            // ATUALIZADO: Carrega também as exclusões pendentes para definir o status
             const pendingDeletes = JSON.parse(localStorage.getItem(`pendingDeletes_${username}`) || '[]');
             const pendingOfflineItems = JSON.parse(localStorage.getItem(offlineKey));
 
             if (pendingOfflineItems) {
+                console.log("Carregando lista com alterações offline pendentes.");
                 redrawTable(pendingOfflineItems);
                 setSyncStatus('offline');
                 return;
             }
 
+            // Se não houver itens pendentes, mas houver exclusões pendentes, marca como offline
             if (pendingDeletes.length > 0) {
                 setSyncStatus('offline');
             }
 
             if (!isOnline) {
+                console.log("Offline. Carregando lista do cache.");
+                // Se já não estiver 'offline' por causa de 'pendingDeletes'
                 if (syncState !== 'offline') setSyncStatus('offline');
                 const cachedItems = JSON.parse(localStorage.getItem(cacheKey) || '[]');
                 redrawTable(cachedItems);
                 return;
             }
 
+            // Se não houver pendências, tenta sincronizar
             if (syncState !== 'offline') setSyncStatus('syncing');
             try {
                 const response = await fetch('/api/list', { headers: getAuthHeaders() });
@@ -777,6 +826,7 @@
                 const remoteItems = await response.json();
                 localStorage.setItem(cacheKey, JSON.stringify(remoteItems));
                 redrawTable(remoteItems, true);
+                // Só muda para 'saved' se não houver pendências offline
                 if (syncState !== 'offline') setSyncStatus('saved');
 
             } catch (error) {
@@ -807,6 +857,7 @@
                 }
             }
 
+            // CORREÇÃO: SÓ chama debouncedSave se NÃO for um campo da "add-item-row"
             const row = target.closest('tr');
             if (row && !row.classList.contains('add-item-row') && ['textarea', 'input'].includes(target.tagName.toLowerCase())) {
                 setSyncStatus('syncing');
@@ -824,25 +875,30 @@
                     }
                 }, 1);
             }
+            // Define o currentActiveInput e chama o autocomplete para QUALQUER campo de nome de item.
             if (target.tagName.toLowerCase() === 'textarea' && target.classList.contains('item-name-input')) { 
                 currentActiveInput = target; 
                 handleAutocompleteInput(event); 
             } else if (target.tagName.toLowerCase() === 'textarea') {
-                 激closeAutocomplete();
+                 // Para outros textareas (apenas por segurança), limpa o autocomplete
+                 closeAutocomplete();
             }
         }, true);
 
         tableBody.addEventListener('blur', (event) => {
             const target = event.target;
+            // CORREÇÃO: Pega a linha do evento
             const row = target.closest('tr'); 
 
+            // CORREÇÃO: SÓ formata/salva se for um campo de preço e NÃO for da "add-item-row"
             if (target.tagName.toLowerCase() === 'input' && target.type === 'text' && row && !row.classList.contains('add-item-row')) {
                 formatCurrency(event.target);
                 comparePrices(event.target);
-                setSyncStatus('syncing');
+                setSyncStatus('syncing'); // Define 'syncing' no blur
                 debouncedSave();
             }
 
+            // Lógica do autocomplete (não muda)
             if (event.target.tagName.toLowerCase() === 'textarea' && event.target.classList.contains('item-name-input')) {
                 setTimeout(() => {
                     if (!autocompleteSuggestions.matches(':hover')) {
@@ -860,7 +916,8 @@
                 const rect = currentActiveInput.getBoundingClientRect();
                 autocompleteSuggestions.style.top = `${rect.bottom + window.scrollY}px`;
                 autocompleteSuggestions.style.left = `${rect.left + window.scrollX}px`;
-                autocompleteSuggestions.style.width = `${rect.width + 16}px`;
+                // Garante que a largura seja igual à do campo de texto
+                autocompleteSuggestions.style.width = `${rect.width + 16}px`; // Adiciona padding horizontal
             }
         }
         window.addEventListener('scroll', updateAutocompletePosition, true);
@@ -880,7 +937,10 @@
                 return;
             }
 
+            // NOVO: Normaliza o texto de entrada para comparação sem acentos
             const normalizedInput = normalizeString(inputText);
+
+            // NOVO: Filtra usando a string normalizada
             const filteredItens = itensList.filter(item => 
                 normalizeString(item.nome).includes(normalizedInput)
             );
@@ -888,7 +948,7 @@
             if (filteredItens.length > 0) {
                 const suggestionsHTML = filteredItens
                     .map(item => `<div class="suggestion-item" data-name="${item.nome.replace(/"/g, '&quot;')}"><span>${item.nome}</span></div>`)
-                    .slice(0, 10) 
+                    .slice(0, 10) // Limitar a 10 sugestões
                     .join('');
                 autocompleteSuggestions.innerHTML = suggestionsHTML;
                 autocompleteSuggestions.style.display = 'block';
@@ -902,21 +962,26 @@
         autocompleteSuggestions.addEventListener('mousedown', (event) => {
             const suggestionItem = event.target.closest('.suggestion-item');
             if (suggestionItem && currentActiveInput) {
-                event.preventDefault(); 
+                event.preventDefault(); // Impede que o input perca o foco
                 const nome = suggestionItem.dataset.name;
                 currentActiveInput.value = nome;
 
                 closeAutocomplete();
+
+                // Disparar manualmente a função de redimensionar
                 autoResizeTextarea(currentActiveInput);
 
+                // Se for o campo de NOVO item, comita para adicionar. Se for EDICÃO, apenas salva.
                 if (currentActiveInput.id === 'newItemName') {
                     commitItem(); 
                 } else {
+                    // Item existente: apenas salva a lista atualizada
                     setSyncStatus('syncing');
                     debouncedSave();
                 }
             }
         });
+        // --- Fim das Funções do Autocomplete ---
 
 
         function createAddItemRow(shouldFocus = false) {
@@ -932,6 +997,7 @@
             `;
             const newItemInput = document.getElementById('newItemName');
             newItemInput.addEventListener('keydown', (event) => {
+                // Apenas comitar/mover se o autocomplete não estiver aberto e a tecla for Enter
                 if (event.key === 'Enter' && !event.shiftKey && autocompleteSuggestions.style.display !== 'block') {
                     event.preventDefault();
                     commitItem();
@@ -948,14 +1014,15 @@
                 return;
             }
 
-            closeAutocomplete(); 
+            closeAutocomplete(); // Garante que deseja fechar ao comitar
 
             const row = itemNameInput.closest('tr');
             const priceShibata = row.cells[2].querySelector('input').value || 'R$ 0,00';
             const priceNagumo = row.cells[3].querySelector('input').value || 'R$ 0,00';
 
+            // ATUALIZADO: O novo item não tem 'id'
             buildItemRow({ 
-                id: null, 
+                id: null, // Novo item
                 name: itemName, 
                 priceShibata: priceShibata, 
                 priceNagumo: priceNagumo, 
@@ -963,13 +1030,14 @@
             }, true); 
 
             createAddItemRow(true);
-            saveList(); 
+            saveList(); // Não é debounced, chama saveList() imediatamente
         }
 
         function buildItemRow(itemData, isNew = false) {
             const newRow = tableBody.insertRow(isNew ? 0 : tableBody.rows.length);
             if (itemData.purchased) newRow.classList.add('purchased');
 
+            // ATUALIZADO: Armazena o ID no dataset da linha
             newRow.dataset.id = itemData.id || '';
 
             const getPriceInputHTML = (price) => {
@@ -991,6 +1059,7 @@
         function redrawTable(items, shouldFocusNewItem = true) {
             tableBody.innerHTML = '';
             if (items && items.length > 0) {
+                // ATUALIZADO: Os itens são desenhados na ordem recebida (que é 'id DESC' do servidor)
                 items.forEach(item => buildItemRow(item, false));
                 sortAndGroup();
             }
@@ -1000,20 +1069,21 @@
         function removeItem(button) {
             if (confirm('Tem certeza de que deseja remover este item?')) {
                 const row = button.closest('tr');
-                const id = row.dataset.id; 
+                const id = row.dataset.id; // Pega o ID do item
                 const username = localStorage.getItem('currentUser');
 
+                // ATUALIZADO: Adiciona o ID à lista de 'pendingDeletes' se ele existir
                 if (id && username) {
                     const key = `pendingDeletes_${username}`;
                     const pendingDeletes = JSON.parse(localStorage.getItem(key) || '[]');
-                    if (!pendingDeletes.includes(parseInt(id))) { 
+                    if (!pendingDeletes.includes(parseInt(id))) { // Evita duplicatas
                         pendingDeletes.push(parseInt(id));
                         localStorage.setItem(key, JSON.stringify(pendingDeletes));
                     }
                 }
 
-                row.remove(); 
-                saveList(); 
+                row.remove(); // Remove do DOM
+                saveList(); // Dispara o save (que agora enviará a exclusão)
             }
         }
 
@@ -1030,16 +1100,18 @@
                 const allRows = Array.from(tableBody.querySelectorAll('tr:not(.add-item-row)'));
                 const idsToDelete = [];
 
+                // ATUALIZADO: Coleta todos os IDs para exclusão
                 allRows.forEach(row => {
                     const id = row.dataset.id;
                     if (id) {
                         idsToDelete.push(parseInt(id));
                     }
-                    row.remove(); 
+                    row.remove(); // Remove do DOM
                 });
 
                 if (idsToDelete.length > 0) {
                     const key = `pendingDeletes_${username}`;
+                    // Mescla com quaisquer exclusões já pendentes
                     const pendingDeletes = JSON.parse(localStorage.getItem(key) || '[]');
                     idsToDelete.forEach(id => {
                         if (!pendingDeletes.includes(id)) {
@@ -1049,7 +1121,7 @@
                     localStorage.setItem(key, JSON.stringify(pendingDeletes));
                 }
 
-                saveList(); 
+                saveList(); // Dispara o save (lista de itens vazia, lista de deletes cheia)
                 createAddItemRow(true); 
             }
         }
@@ -1057,13 +1129,15 @@
         // --- Eventos de Conexão ---
         window.addEventListener('online', async () => {
             isOnline = true;
+            // ATUALIZADO: Sincroniza primeiro as mudanças offline
             await syncOfflineChanges(); 
+            // Em seguida, carrega a lista (que será a mesclada se a sincronização ocorrer)
             await loadList(); 
-            startPolling(); 
+            startPolling(); // Reinicia o polling ao ficar online
         });
         window.addEventListener('offline', () => {
             isOnline = false;
-            stopPolling(); 
+            stopPolling(); // Para o polling ao ficar offline
             setSyncStatus('offline');
         });
 
@@ -1118,6 +1192,7 @@
                 else nagumo.push(row);
             });
 
+            // O agrupamento (unpriced -> shibata -> equal -> nagumo) é mantido, garantindo a ordenação primária por status de preço.
             [...unpriced, ...shibata, ...equal, ...nagumo].forEach(row => tableBody.appendChild(row));
         }
 
@@ -1173,7 +1248,7 @@
                 showAuth();
             }
             setupVirtualKeyboardListener();
-            
+            // ATUALIZADO: Verifica pendências para definir o status inicial
             const username = localStorage.getItem('currentUser');
             let hasPending = false;
             if (username) {
@@ -1191,6 +1266,7 @@
             }
         });
 
+        // Service Worker Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js')
