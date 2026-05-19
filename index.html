@@ -196,7 +196,7 @@
         .shopping-list-table td input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
         .purchased .item-name-input { text-decoration: line-through; color: var(--secondary-text-color); }
 
-        /* --- SEÇÃO DO EMBED --- */
+        /* --- SEÇÃO DO EMBED (OTIMIZAÇÃO DE PERFORMANCE) --- */
         .iframe-container { position: relative; border-radius: var(--border-radius); overflow: hidden; padding-top: 200%; }
         .iframe-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
         #iframe-overlay, #iframe-overlay-2 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); display: none; justify-content: center; align-items: center; flex-direction: column; gap: 15px; z-index: 5; color: var(--text-color); text-align: center; }
@@ -209,6 +209,7 @@
         .collapsible-header .fas.fa-chevron-down { transition: transform 0.2s ease; color: var(--secondary-text-color); }
         .collapsible-header.active .fas.fa-chevron-down { transform: rotate(180deg); }
         
+        /* Ajuste Avançado CSS: Substituição de max-height por display para evitar reflows pesados */
         .collapsible-content { display: none; padding: 0 16px; }
         .collapsible-content.expanded { display: block; padding-bottom: 20px; }
         
@@ -242,6 +243,7 @@
         #sync-status-indicator.status-saved { background-color: var(--green-highlight); }
         #sync-status-indicator.status-offline { background-color: #7986cb; }
 
+        /* --- Autocomplete --- */
         #autocomplete-suggestions {
             position: absolute;
             background-color: var(--input-bg-color);
@@ -550,7 +552,6 @@
         let syncState = 'saved';
         let isOnline = navigator.onLine;
         let pollingIntervalId = null; 
-        let isSavingOnline = false;
 
         let itensList = [];
 
@@ -598,7 +599,6 @@
 
             if (!isOnline || 
                 document.hidden || 
-                isSavingOnline ||
                 syncState === 'syncing' || 
                 (activeEl && ['INPUT', 'TEXTAREA'].includes(activeEl.tagName) && tableBody.contains(activeEl))) 
             {
@@ -651,7 +651,6 @@
 
             const pendingDeletes = JSON.parse(localStorage.getItem(`pendingDeletes_${username}`) || '[]');
 
-            // PERMITE SALVAMENTO LOCAL COMPLETO EM MODO OFFLINE
             if (!isOnline) {
                 setSyncStatus('offline');
                 localStorage.setItem(`offlineList_${username}`, JSON.stringify(items));
@@ -663,15 +662,8 @@
         }
 
         async function saveListOnline(items, deletes = []) {
-            if (isSavingOnline) return; 
-            isSavingOnline = true;
-            setSyncStatus('syncing');
-
             const username = localStorage.getItem('currentUser');
-            if (!username) {
-                isSavingOnline = false;
-                return;
-            }
+            if (!username) return;
 
             try {
                 const response = await fetch('/api/list', {
@@ -679,15 +671,12 @@
                     headers: getAuthHeaders(),
                     body: JSON.stringify({ items: items, deletes: deletes })
                 });
-                if (response.status === 401) {
-                    isSavingOnline = false;
-                    return handleLogout();
-                }
+                if (response.status === 401) return handleLogout();
                 if (!response.ok) throw new Error('Falha ao salvar no servidor.');
 
                 const mergedItems = await response.json();
-
                 setSyncStatus('saved');
+
                 localStorage.setItem(`shoppingList_${username}`, JSON.stringify(mergedItems));
                 localStorage.removeItem(`offlineList_${username}`);
                 localStorage.removeItem(`pendingDeletes_${username}`);
@@ -697,22 +686,10 @@
 
                 if (!isTypingInTable) {
                     redrawTable(mergedItems, false); 
-                } else {
-                    mergedItems.forEach(remoteItem => {
-                        document.querySelectorAll('#shopping-list-body tr:not(.add-item-row)').forEach(row => {
-                            const currentName = row.cells[1].querySelector('textarea').value.trim();
-                            if (currentName === remoteItem.name) {
-                                row.dataset.id = remoteItem.id;
-                            }
-                        });
-                    });
                 }
-
             } catch (error) {
                 setSyncStatus('error');
                 console.error("Erro ao salvar online:", error);
-            } finally {
-                isSavingOnline = false; 
             }
         }
 
@@ -730,6 +707,7 @@
                     ? JSON.parse(pendingItemsJSON)
                     : JSON.parse(localStorage.getItem(`shoppingList_${username}`) || '[]');
 
+                setSyncStatus('syncing');
                 await saveListOnline(localOfflineItems, pendingDeletes);
             } catch (error) {
                 console.error("Falha ao sincronizar as alterações offline:", error);
@@ -863,6 +841,7 @@
             }
         }
 
+        // Troca dos listeners diretos por chamadas via rAF para reduzir consumo de CPU
         window.addEventListener('scroll', requestTick, { passive: true });
         window.addEventListener('resize', requestTick, { passive: true });
 
@@ -953,11 +932,8 @@
             const priceShibata = row.cells[2].querySelector('input').value || 'R$ 0,00';
             const priceNagumo = row.cells[3].querySelector('input').value || 'R$ 0,00';
 
-            // ATUALIZADO: Gera ID temporário negativo para permitir manipulação fluida e salvar offline
-            const tempId = -Date.now();
-
             buildItemRow({ 
-                id: tempId, 
+                id: null, 
                 name: itemName, 
                 priceShibata: priceShibata, 
                 priceNagumo: priceNagumo, 
@@ -1005,8 +981,7 @@
                 const id = row.dataset.id; 
                 const username = localStorage.getItem('currentUser');
 
-                // Apenas insere na fila de deleção do servidor se não for um ID temporário negativo
-                if (id && parseInt(id) > 0 && username) {
+                if (id && username) {
                     const key = `pendingDeletes_${username}`;
                     const pendingDeletes = JSON.parse(localStorage.getItem(key) || '[]');
                     if (!pendingDeletes.includes(parseInt(id))) { 
@@ -1035,7 +1010,7 @@
 
                 allRows.forEach(row => {
                     const id = row.dataset.id;
-                    if (id && parseInt(id) > 0) {
+                    if (id) {
                         idsToDelete.push(parseInt(id));
                     }
                     row.remove(); 
