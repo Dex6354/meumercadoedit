@@ -302,7 +302,7 @@
             list-style: none;
             margin: 0; padding: 0;
             z-index: 999;
-            max-height: min(20px, 35vh);
+            max-height: min(50vh, 350px);
             overflow-y: auto;
             display: none;
             box-shadow: 0 6px 20px rgba(0,0,0,0.4);
@@ -868,7 +868,7 @@
 
             const filtrados = itensList.filter(i =>
                 i.nome && (!termo || normalizeString(i.nome).includes(termo))
-            ).slice(0, 50);
+            ).slice(0, 200);
 
             dropdown.innerHTML = '';
             if (filtrados.length === 0) return;
@@ -912,7 +912,7 @@
 
             const filtrados = itensList.filter(i =>
                 i.nome && (!termo || normalizeString(i.nome).includes(termo))
-            ).slice(0, 30);
+            ).slice(0, 200);
 
             dropdown.innerHTML = '';
 
