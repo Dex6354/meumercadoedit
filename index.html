@@ -10,6 +10,7 @@
     <meta property="og:description" content="Sua lista de compras inteligente com comparador de preços e otimização." />
     <meta property="og:image" content="https://meumercado.pages.dev/01.png" />
 
+
     <link rel="icon" href="01.png" type="image/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
@@ -79,7 +80,7 @@
         }
         .password-container .auth-input {
             margin-bottom: 0;
-            padding-right: 40px;
+            padding-right: 40px; /* Espaço para o ícone */
         }
         #togglePassword {
             position: absolute;
@@ -167,55 +168,6 @@
         .section-header .clear-btn { background: none; border: none; color: var(--danger-color); cursor: pointer; font-size: 1.2rem; transition: color 0.3s; padding: 5px; }
         .section-header .clear-btn:hover { color: #ff7961; }
 
-        /* --- LAYOUT DE ABAS DE NAVEGADOR --- */
-        .tabs-nav {
-            display: flex;
-            background-color: var(--bg-color);
-            border-bottom: 1px solid var(--input-bg-color);
-            padding: 0 8px;
-            gap: 4px;
-            margin-top: 10px;
-        }
-        .tab-btn {
-            background: #1a1a1a;
-            color: var(--secondary-text-color);
-            border: none;
-            padding: 12px 24px;
-            font-size: 0.95rem;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 8px 8px 0 0;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .tab-btn:hover {
-            background: #252525;
-            color: var(--text-color);
-        }
-        .tab-btn.active {
-            background-color: var(--card-color);
-            color: var(--primary-color);
-            border-bottom: 2px solid var(--primary-color);
-        }
-        .tab-content {
-            display: none;
-            background-color: var(--card-color);
-            padding: 20px 16px;
-            border-radius: 0 0 var(--border-radius) var(--border-radius);
-            margin-bottom: 24px;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        .tab-content h2 {
-            margin-top: 0;
-            margin-bottom: 16px;
-            font-size: 1.4rem;
-            color: var(--primary-color);
-        }
-
         /* --- BOTÕES --- */
         .custom-btn { background-color: var(--primary-color); color: var(--bg-color); border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: bold; padding: 10px 15px; transition: background-color 0.3s; }
         .custom-btn:hover { background-color: #ffd54f; }
@@ -253,13 +205,80 @@
         #iframe-overlay, #iframe-overlay-2 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); display: none; justify-content: center; align-items: center; flex-direction: column; gap: 15px; z-index: 5; color: var(--text-color); text-align: center; }
         .loader { border: 4px solid var(--input-bg-color); border-top: 4px solid var(--primary-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
+        /* --- ABAS (TABS) --- */
+        .tabs-wrapper {
+            background-color: var(--card-color);
+            border-radius: var(--border-radius);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+        .tabs-nav {
+            display: flex;
+            background-color: #1a1a1a;
+            border-bottom: 2px solid var(--input-bg-color);
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        .tabs-nav::-webkit-scrollbar { display: none; }
+        .tab-btn {
+            flex: 1;
+            padding: 13px 16px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            color: var(--secondary-text-color);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: color 0.2s, border-color 0.2s, background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .tab-btn:hover {
+            color: var(--text-color);
+            background-color: #252525;
+        }
+        .tab-btn.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            background-color: var(--card-color);
+        }
+        .tab-btn i { font-size: 0.85rem; }
+        .tab-panel {
+            display: none;
+            padding: 20px 16px;
+        }
+        .tab-panel.active {
+            display: block;
+        }
         .footer { text-align: center; padding: 16px; color: var(--secondary-text-color); font-size: 0.875rem; background-color: #282828; margin-top: auto; width: 100%; }
 
-        #sync-status-indicator { width: 12px; height: 12px; border-radius: 50%; background-color: var(--green-highlight); z-index: 11; transition: background-color 0.5s ease; flex-shrink: 0; }
+        #sync-status-indicator { 
+            width: 12px; 
+            height: 12px; 
+            border-radius: 50%; 
+            background-color: var(--green-highlight); 
+            z-index: 11; 
+            transition: background-color 0.5s ease; 
+            flex-shrink: 0;
+        }
 
-        .header-right { display: flex; align-items: center; gap: 15px; }
-        #username-display { color: var(--secondary-text-color); font-size: 0.9rem; display: flex; align-items: center; gap: 8px; }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        #username-display {
+            color: var(--secondary-text-color);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
         #sync-status-indicator.status-syncing { background-color: var(--yellow-sync-color); }
         #sync-status-indicator.status-error { background-color: var(--danger-color); }
@@ -273,7 +292,7 @@
             border: 1px solid var(--primary-color);
             border-top: none;
             border-radius: 0 0 8px 8px;
-            z-index: 1002;
+            z-index: 1002; /* Mais alto que o overlay do menu */
             max-height: 200px;
             overflow-y: auto;
             display: none;
@@ -287,10 +306,16 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            border-bottom: 1px solid #666;
+            /* NOVO: Linha cinza entre itens */
+            border-bottom: 1px solid #666; 
         }
-        .suggestion-item:last-child { border-bottom: none; }
-        .suggestion-item:hover { background-color: #555; }
+        .suggestion-item:last-child {
+            /* Remove a borda do último item para não duplicar o contorno */
+            border-bottom: none; 
+        }
+        .suggestion-item:hover {
+            background-color: #555;
+        }
 
         @media (min-width: 768px) { .shopping-list-table colgroup col:nth-child(2) { width: 450px; } }
         @media (min-width: 1024px) { .shopping-list-table colgroup col:nth-child(2) { width: 550px; } }
@@ -337,7 +362,7 @@
                     <span id="username-display"></span>
                     <div id="sync-status-indicator"></div>
                 </div>
-            </div>
+                </div>
 
             <div class="container">
                 <div class="section shopping-list-section">
@@ -351,8 +376,7 @@
                     <div class="table-scroll-wrapper">
                         <table class="shopping-list-table">
                             <colgroup>
-                                <col style="width: 40px;"> <col style="width: 250px;"> <col style="width: 80px;"> <col style="width: 80px;"> <col style="width: 45px;"> 
-                            </colgroup>
+                                <col style="width: 40px;"> <col style="width: 250px;"> <col style="width: 80px;"> <col style="width: 80px;"> <col style="width: 45px;"> </colgroup>
                             <thead>
                                 <tr>
                                     <th><i class="fas fa-check"></i></th>
@@ -367,51 +391,50 @@
                     </div>
                 </div>
 
-                <div class="tabs-nav">
-                    <button class="tab-btn active" onclick="switchTab('comparator-section')">
-                        <i class="fas fa-balance-scale"></i> Comparador de Preços
-                    </button>
-                    <button class="tab-btn" onclick="switchTab('comparator-section-2')">
-                        <i class="fas fa-search"></i> Busca Preço Auto
-                    </button>
-                </div>
-
-                <div class="tab-content active" id="comparator-section">
-                    <h2>Comparador de Preços</h2>
-                    <div id="iframe-wrapper" class="iframe-container">
-                        <div id="iframe-overlay">
-                            <div class="loader"></div>
-                            <span>Acordando o comparador...</span>
-                        </div>
-                        <iframe id="streamlit-app" src="https://precosmercados.streamlit.app/?embed=true&minimal=true"></iframe>
-                    </div>
-                       
-                    <div class="button-group" style="margin-top: 16px;">
-                        <button class="custom-btn" onclick="wakeUpApp()" style="flex-grow: 1;">
-                            <i class="fas fa-sync-alt"></i> Ativar / Atualizar
+                <div class="tabs-wrapper">
+                    <div class="tabs-nav">
+                        <button class="tab-btn active" onclick="switchTab('tab-comparador', this)">
+                            <i class="fas fa-chart-bar"></i> Comparador de Preços
                         </button>
-                        <a href="https://precosmercados.streamlit.app/" target="_blank" rel="noopener noreferrer" class="custom-btn secondary" style="flex-grow: 1; text-align: center; text-decoration: none; line-height: 1.8;">
-                            <i class="fas fa-external-link-alt"></i> Abrir em Nova Guia
-                        </a>
-                    </div>
-                </div>
-
-                <div class="tab-content" id="comparator-section-2">
-                    <h2>Busca Preço Auto</h2>
-                    <div id="iframe-wrapper-2" class="iframe-container">
-                        <div id="iframe-overlay-2">
-                            <div class="loader"></div>
-                            <span>Acordando o comparador...</span>
-                        </div>
-                        <iframe id="streamlit-app-2" src="https://buscaprecoauto.streamlit.app/?embed=true&minimal=true"></iframe>
-                    </div>
-                    <div class="button-group" style="margin-top: 16px;">
-                        <button class="custom-btn" onclick="wakeUpApp2()" style="flex-grow: 1;">
-                            <i class="fas fa-sync-alt"></i> Ativar / Atualizar
+                        <button class="tab-btn" onclick="switchTab('tab-busca', this)">
+                            <i class="fas fa-search-dollar"></i> Busca Preço Auto
                         </button>
-                        <a href="https://buscaprecoauto.streamlit.app/" target="_blank" rel="noopener noreferrer" class="custom-btn secondary" style="flex-grow: 1; text-align: center; text-decoration: none; line-height: 1.8;">
-                            <i class="fas fa-external-link-alt"></i> Abrir em Nova Guia
-                        </a>
+                    </div>
+
+                    <div id="tab-comparador" class="tab-panel active">
+                        <div id="iframe-wrapper" class="iframe-container">
+                            <div id="iframe-overlay">
+                                <div class="loader"></div>
+                                <span>Acordando o comparador...</span>
+                            </div>
+                            <iframe id="streamlit-app" src="https://precosmercados.streamlit.app/?embed=true&minimal=true"></iframe>
+                        </div>
+                        <div class="button-group" style="margin-top: 16px;">
+                            <button class="custom-btn" onclick="wakeUpApp()" style="flex-grow: 1;">
+                                <i class="fas fa-sync-alt"></i> Ativar / Atualizar
+                            </button>
+                            <a href="https://precosmercados.streamlit.app/" target="_blank" rel="noopener noreferrer" class="custom-btn secondary" style="flex-grow: 1; text-align: center; text-decoration: none; line-height: 1.8;">
+                                <i class="fas fa-external-link-alt"></i> Abrir em Nova Guia
+                            </a>
+                        </div>
+                    </div>
+
+                    <div id="tab-busca" class="tab-panel">
+                        <div id="iframe-wrapper-2" class="iframe-container">
+                            <div id="iframe-overlay-2">
+                                <div class="loader"></div>
+                                <span>Acordando o comparador...</span>
+                            </div>
+                            <iframe id="streamlit-app-2" src="https://buscaprecoauto.streamlit.app/?embed=true&minimal=true"></iframe>
+                        </div>
+                        <div class="button-group" style="margin-top: 16px;">
+                            <button class="custom-btn" onclick="wakeUpApp2()" style="flex-grow: 1;">
+                                <i class="fas fa-sync-alt"></i> Ativar / Atualizar
+                            </button>
+                            <a href="https://buscaprecoauto.streamlit.app/" target="_blank" rel="noopener noreferrer" class="custom-btn secondary" style="flex-grow: 1; text-align: center; text-decoration: none; line-height: 1.8;">
+                                <i class="fas fa-external-link-alt"></i> Abrir em Nova Guia
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -451,6 +474,7 @@
         function showApp() {
             authContainer.style.display = 'none';
             appContainer.style.display = 'block';
+
             const username = localStorage.getItem('currentUser');
             const usernameDisplay = document.getElementById('username-display');
             if (username && usernameDisplay) {
@@ -458,7 +482,7 @@
             }
 
             loadList();
-            startPolling();
+            startPolling(); // Inicia a verificação contínua por atualizações
         }
 
         function showAuth(message = '', isError = false) {
@@ -482,13 +506,14 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
                 });
+
                 const data = await response.json();
                 if (!response.ok) {
                     throw new Error(data.message || 'Erro ao fazer login.');
                 }
 
                 localStorage.setItem('authToken', data.token);
-                localStorage.setItem('currentUser', username);
+                localStorage.setItem('currentUser', username); 
                 showApp();
             } catch (error) {
                 showAuth(error.message, true);
@@ -520,7 +545,7 @@
         }
 
         async function handleLogout() {
-            stopPolling();
+            stopPolling(); // Para a verificação contínua ao sair
             const token = localStorage.getItem('authToken');
             if (token) {
                 try {
@@ -533,13 +558,14 @@
                 }
             }
             localStorage.removeItem('authToken');
+            // ATUALIZADO: Remove chaves de usuário específicas ao sair
             const username = localStorage.getItem('currentUser');
             if (username) {
                  localStorage.removeItem(`shoppingList_${username}`);
                  localStorage.removeItem(`offlineList_${username}`);
                  localStorage.removeItem(`pendingDeletes_${username}`);
             }
-            localStorage.removeItem('currentUser');
+            localStorage.removeItem('currentUser'); // Deve ser removido por último
             location.reload();
         }
 
@@ -555,40 +581,48 @@
         function closeNav() { document.getElementById("side-menu").classList.remove('open'); document.getElementById("page-overlay").classList.remove('show'); }
         document.addEventListener('keydown', (event) => { if (event.key === "Escape") closeNav(); });
 
-        // --- INTERFACE DE ABAS ---
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-
-            const activeBtn = document.querySelector(`.tab-btn[onclick*="${tabId}"]`);
-            if (activeBtn) activeBtn.classList.add('active');
-
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
         }
 
-        // --- VARIÁVEIS DE ESTADO E SYNC ---
+        // --- Variáveis de Sincronização e Estado ---
         const tableBody = document.getElementById('shopping-list-body');
         const statusIndicator = document.getElementById('sync-status-indicator');
-        const autocompleteSuggestions = document.getElementById('autocomplete-suggestions');
+        const autocompleteSuggestions = document.getElementById('autocomplete-suggestions'); // Variável para o Autocomplete
         let saveTimeout;
         let syncState = 'saved';
         let isOnline = navigator.onLine;
-        let pollingIntervalId = null;
+        let pollingIntervalId = null; // ID para o intervalo do polling
 
+        // --- Autocomplete Item List (Loaded from KV) ---
         let itensList = [];
+
         async function carregarItens() {
             try {
-                const response = await fetch(WORKER_URL);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                // ALTERADO: Agora busca do endpoint da API (Cloudflare KV)
+                const response = await fetch(WORKER_URL); 
+                if (!response.ok) {
+                    // Se a rede falhar E não houver cache (primeiro acesso offline), 
+                    // a promise pode ser rejeitada ou o status ser 503 (offline).
+                    // O SW deve retornar a versão em cache. Se chegou aqui, 
+                    // significa que falhou na rede E o SW não tinha cache.
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 itensList = await response.json();
+                console.log(`Itens de Autocomplete carregados: ${itensList.length}`);
             } catch (error) {
-                console.error('Falha ao carregar lista de itens da API:', error);
+                console.error('Falha ao carregar lista de itens da API (Pode ser o primeiro acesso offline):', error);
+                // Fallback to empty list
                 itensList = [];
             }
         }
 
-        let currentActiveInput = null;
+        let currentActiveInput = null; // Input ativo para o Autocomplete
 
+        // --- FUNÇÃO ADICIONADA: Normaliza string para comparação sem acentos ---
         function normalizeString(str) {
             return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
         }
@@ -601,6 +635,7 @@
             }
         }
 
+        // --- LÓGICA DE POLLING (SINCRONIZAÇÃO CONTÍNUA) ---
         function stopPolling() {
             if (pollingIntervalId) {
                 clearInterval(pollingIntervalId);
@@ -609,15 +644,26 @@
         }
 
         function startPolling() {
-            stopPolling();
-            pollingIntervalId = setInterval(pollForChanges, 4000);
+            stopPolling(); // Garante que não haja múltiplos intervalos rodando
+            pollingIntervalId = setInterval(pollForChanges, 4000); // Verifica por mudanças a cada 4 segundos
         }
 
         async function pollForChanges() {
             const activeEl = document.activeElement;
-            if (!isOnline || document.hidden || syncState === 'syncing' || (activeEl && ['INPUT', 'TEXTAREA'].includes(activeEl.tagName) && tableBody.contains(activeEl))) {
+
+            // Pula o polling se:
+            // 1. Está offline
+            // 2. A aba está oculta
+            // 3. Uma sincronização (saveList) já está em andamento (CRUCIAL)
+            // 4. O usuário está digitando ativamente na tabela
+            if (!isOnline || 
+                document.hidden || 
+                syncState === 'syncing' || // <-- CORREÇÃO DA RACE CONDITION (Preço sumindo)
+                (activeEl && ['INPUT', 'TEXTAREA'].includes(activeEl.tagName) && tableBody.contains(activeEl))) 
+            {
                 return;
             }
+
 
             try {
                 const response = await fetch('/api/list', { headers: getAuthHeaders() });
@@ -626,11 +672,14 @@
 
                 const remoteItems = await response.json();
                 const localItems = getCurrentLocalItems();
+
+                // Compara a lista remota com a local. Se forem diferentes, atualiza a tela.
+                // Esta comparação agora inclui IDs, então é mais robusta.
                 if (JSON.stringify(remoteItems) !== JSON.stringify(localItems)) {
-                    redrawTable(remoteItems, false);
+                    redrawTable(remoteItems, false); // Redesenha a tabela sem focar no campo de novo item
                 }
             } catch (error) {
-                // Silencioso
+                // Falha silenciosa para não poluir o console com erros de rede
             }
         }
 
@@ -648,6 +697,7 @@
                 const name = row.cells[1].querySelector('textarea').value.trim();
                 if (name) {
                     items.push({
+                        // ATUALIZADO: Inclui o ID do item
                         id: row.dataset.id ? parseInt(row.dataset.id) : null,
                         name: name,
                         priceShibata: row.cells[2].querySelector('input').value || 'R$ 0,00',
@@ -659,18 +709,26 @@
             return items;
         }
 
+        // --- LÓGICA DE SINCRONIZAÇÃO E CACHE OFFLINE ---
         async function saveList() {
             const items = getCurrentLocalItems();
             const username = localStorage.getItem('currentUser');
             if (!username) return;
 
+            // ATUALIZADO: Busca exclusões pendentes
             const pendingDeletes = JSON.parse(localStorage.getItem(`pendingDeletes_${username}`) || '[]');
+
             if (!isOnline) {
                 setSyncStatus('offline');
+                console.log("Offline: Salvando alterações localmente.");
+                // Salva os itens modificados
                 localStorage.setItem(`offlineList_${username}`, JSON.stringify(items));
+                // As exclusões pendentes já estão salvas no localStorage, então não faz mais nada
                 return;
             }
 
+            // CORREÇÃO: Define 'syncing' aqui, *antes* do await,
+            // para que o pollForChanges pare imediatamente.
             setSyncStatus('syncing'); 
             await saveListOnline(items, pendingDeletes);
         }
@@ -679,353 +737,547 @@
             const username = localStorage.getItem('currentUser');
             if (!username) return;
 
+            // 'syncing' já foi definido em saveList()
+            // setSyncStatus('syncing'); 
             try {
                 const response = await fetch('/api/list', {
                     method: 'POST',
                     headers: getAuthHeaders(),
+                    // ATUALIZADO: Envia um objeto com 'items' e 'deletes'
                     body: JSON.stringify({ items: items, deletes: deletes })
                 });
                 if (response.status === 401) return handleLogout();
                 if (!response.ok) throw new Error('Falha ao salvar no servidor.');
+
+                // ATUALIZADO: O servidor agora retorna a lista mesclada e autoritativa
                 const mergedItems = await response.json();
+
                 setSyncStatus('saved');
 
+                // Salva a lista autoritativa (com novos IDs) no cache principal
                 localStorage.setItem(`shoppingList_${username}`, JSON.stringify(mergedItems));
+
+                // Limpa as pendências offline (itens e deletes) APÓS o sucesso
                 localStorage.removeItem(`offlineList_${username}`);
                 localStorage.removeItem(`pendingDeletes_${username}`);
 
+                // ATUALIZADO: Redesenha a tabela com a lista do servidor
+                // Isso é crucial para que os novos itens recebam seus IDs corretos no DOM
+
+                // CORREÇÃO: Não redesenha a tabela se o usuário estiver
+                // ativamente digitando em um campo, para evitar perda de dados/foco.
                 const activeEl = document.activeElement;
                 const isTypingInTable = activeEl && ['INPUT', 'TEXTAREA'].includes(activeEl.tagName) && tableBody.contains(activeEl);
+
                 if (!isTypingInTable) {
-                    redrawTable(mergedItems, false);
+                    // Passa 'false' para não roubar o foco para o campo "novo item"
+                    redrawTable(mergedItems, false); 
+                } else {
+                    // O usuário está digitando. Não redesenhe agora.
+                    // A lista em cache foi atualizada, o próximo
+                    // 'pollForChanges' (quando o usuário parar de digitar) 
+                    // vai sincronizar a UI.
+                    console.log("Usuário digitando, adiando redesenho da UI.");
                 }
+
             } catch (error) {
                 setSyncStatus('error');
                 console.error("Erro ao salvar online:", error);
             }
         }
 
-        function triggerDelayedSave() {
-            clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(saveList, 1500);
-        }
+        // --- LÓGICA DE SINCRONIZAÇÃO DE ALTERAÇÕES OFFLINE (CORRIGIDO) ---
+        async function syncOfflineChanges() {
+            const username = localStorage.getItem('currentUser');
+            if (!username) return;
 
-        // --- ENGENHARIA DE PREÇOS E FORMATATAÇÃO ---
-        function parsePrice(val) {
-            if (!val) return 0;
-            let clean = val.replace(/[^\d,.-]/g, '').replace(',', '.');
-            let num = parseFloat(clean);
-            return isNaN(num) ? 0 : num;
-        }
+            const pendingItemsJSON = localStorage.getItem(`offlineList_${username}`);
+            // ATUALIZADO: Carrega também as exclusões pendentes
+            const pendingDeletes = JSON.parse(localStorage.getItem(`pendingDeletes_${username}`) || '[]');
 
-        function formatCurrency(num) {
-            return 'R$ ' + num.toFixed(2).replace('.', ',');
-        }
+            // Se não há itens pendentes E não há exclusões pendentes, não faz nada
+            if (!pendingItemsJSON && pendingDeletes.length === 0) {
+                console.log("Nenhuma alteração offline para sincronizar.");
+                return;
+            }
 
-        function applyPriceFormatting(row) {
-            const shibataInput = row.cells[2].querySelector('input');
-            const nagumoInput = row.cells[3].querySelector('input');
+            console.log("Conectado. Sincronizando alterações pendentes...");
 
-            let pShibata = parsePrice(shibataInput.value);
-            let pNagumo = parsePrice(nagumoInput.value);
+            try {
+                // Se 'pendingItemsJSON' existir, usa ele (é a fonte da verdade offline)
+                // Se não, usa a lista do cache (mas ainda pode haver 'pendingDeletes' para enviar)
+                const localOfflineItems = pendingItemsJSON
+                    ? JSON.parse(pendingItemsJSON)
+                    : JSON.parse(localStorage.getItem(`shoppingList_${username}`) || '[]');
 
-            shibataInput.classList.remove('cheapest-price', 'equal-price');
-            nagumoInput.classList.remove('cheapest-price', 'equal-price');
+                // ATUALIZADO: Envia itens e exclusões pendentes
 
-            if (pShibata > 0 || pNagumo > 0) {
-                if (pShibata > 0 && pNagumo > 0) {
-                    if (pShibata < pNagumo) {
-                        shibataInput.classList.add('cheapest-price');
-                    } else if (pNagumo < pShibata) {
-                        nagumoInput.classList.add('cheapest-price');
-                    } else {
-                        shibataInput.classList.add('equal-price');
-                        nagumoInput.classList.add('equal-price');
-                    }
-                } else if (pShibata > 0) {
-                    shibataInput.classList.add('cheapest-price');
-                } else if (pNagumo > 0) {
-                    nagumoInput.classList.add('cheapest-price');
-                }
+                // CORREÇÃO: Define 'syncing' aqui, *antes* do await
+                setSyncStatus('syncing');
+                await saveListOnline(localOfflineItems, pendingDeletes);
+
+                // O 'redrawTable' agora é chamado DENTRO de 'saveListOnline'
+
+            } catch (error) {
+                console.error("Falha ao sincronizar as alterações offline:", error);
+                setSyncStatus('error');
             }
         }
 
-        function formatPriceInput(input) {
-            let value = input.value.replace(/\D/g, '');
-            if (value === '' || parseInt(value) === 0) {
-                input.value = '';
-                input.classList.add('default-price');
-            } else {
-                let num = parseInt(value) / 100;
-                input.value = formatCurrency(num);
-                input.classList.remove('default-price');
+        async function loadList() {
+            const username = localStorage.getItem('currentUser');
+            if (!username) return;
+
+            const offlineKey = `offlineList_${username}`;
+            const cacheKey = `shoppingList_${username}`;
+            // ATUALIZADO: Carrega também as exclusões pendentes para definir o status
+            const pendingDeletes = JSON.parse(localStorage.getItem(`pendingDeletes_${username}`) || '[]');
+            const pendingOfflineItems = JSON.parse(localStorage.getItem(offlineKey));
+
+            if (pendingOfflineItems) {
+                console.log("Carregando lista com alterações offline pendentes.");
+                redrawTable(pendingOfflineItems);
+                setSyncStatus('offline');
+                return;
+            }
+
+            // Se não houver itens pendentes, mas houver exclusões pendentes, marca como offline
+            if (pendingDeletes.length > 0) {
+                setSyncStatus('offline');
+            }
+
+            if (!isOnline) {
+                console.log("Offline. Carregando lista do cache.");
+                // Se já não estiver 'offline' por causa de 'pendingDeletes'
+                if (syncState !== 'offline') setSyncStatus('offline');
+                const cachedItems = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+                redrawTable(cachedItems);
+                return;
+            }
+
+            // Se não houver pendências, tenta sincronizar
+            if (syncState !== 'offline') setSyncStatus('syncing');
+            try {
+                const response = await fetch('/api/list', { headers: getAuthHeaders() });
+                if (response.status === 401) return handleLogout();
+                if (!response.ok) throw new Error('Falha ao buscar dados.');
+
+                const remoteItems = await response.json();
+                localStorage.setItem(cacheKey, JSON.stringify(remoteItems));
+                redrawTable(remoteItems, true);
+                // Só muda para 'saved' se não houver pendências offline
+                if (syncState !== 'offline') setSyncStatus('saved');
+
+            } catch (error) {
+                console.error('Erro ao buscar lista online, usando cache como fallback:', error);
+                setSyncStatus('offline'); 
+                const cachedItems = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+                redrawTable(cachedItems);
             }
         }
 
-        // --- REDRAW DA TABELA ---
-        function redrawTable(items, isInitialLoad = false) {
-            const focusedElementId = document.activeElement ? document.activeElement.id : null;
-            const focusedRowIndex = document.activeElement && document.activeElement.closest('tr') ? document.activeElement.closest('tr').rowIndex : -1;
-            const focusedCellIndex = document.activeElement && document.activeElement.closest('td') ? document.activeElement.closest('td').cellIndex : -1;
-            const selectionStart = document.activeElement ? document.activeElement.selectionStart : null;
-            const selectionEnd = document.activeElement ? document.activeElement.selectionEnd : null;
+        const debouncedSave = debounce(saveList, 1500);
 
-            tableBody.innerHTML = '';
-
-            items.forEach(item => {
-                const row = createRow(item);
-                tableBody.appendChild(row);
-                applyPriceFormatting(row);
-            });
-
-            appendAddRow();
-
-            if (focusedRowIndex !== -1 && focusedCellIndex !== -1) {
-                const targetRow = tableBody.rows[focusedRowIndex - 1];
-                if (targetRow) {
-                    const targetCell = targetRow.cells[focusedCellIndex];
-                    if (targetCell) {
-                        const input = targetCell.querySelector('input, textarea');
-                        if (input) {
-                            input.focus();
-                            if (selectionStart !== null && selectionEnd !== null && typeof input.setSelectionRange === 'function') {
-                                try { input.setSelectionRange(selectionStart, selectionEnd); } catch(e){}
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        function createRow(item) {
-            const tr = document.createElement('tr');
-            tr.dataset.id = item.id;
-            if (item.purchased) tr.classList.add('purchased');
-
-            // Checkbox
-            const tdCheck = document.createElement('td');
-            const chk = document.createElement('input');
-            chk.type = 'checkbox';
-            chk.checked = item.purchased;
-            chk.addEventListener('change', function() {
-                tr.classList.toggle('purchased', this.checked);
-                saveList();
-            });
-            tdCheck.appendChild(chk);
-            tr.appendChild(tdCheck);
-
-            // Nome do Item
-            const tdName = document.createElement('td');
-            const txt = document.createElement('textarea');
-            txt.className = 'item-name-input';
-            txt.rows = 1;
-            txt.value = item.name;
-            txt.addEventListener('input', function() {
-                autoResizeTextarea(this);
-                showAutocomplete(this);
-                triggerDelayedSave();
-            });
-            txt.addEventListener('focus', function() { currentActiveInput = this; });
-            txt.addEventListener('blur', () => setTimeout(hideAutocomplete, 200));
-            tdName.appendChild(txt);
-            tr.appendChild(tdName);
-            setTimeout(() => autoResizeTextarea(txt), 0);
-
-            // Preço Shibata
-            const tdShibata = document.createElement('td');
-            tdShibata.className = 'price-cell';
-            const inShibata = document.createElement('input');
-            inShibata.type = 'text';
-            inShibata.inputMode = 'numeric';
-            inShibata.value = (item.priceShibata && item.priceShibata !== 'R$ 0,00') ? item.priceShibata : '';
-            if (!inShibata.value) inShibata.classList.add('default-price');
-            inShibata.addEventListener('input', function() { formatPriceInput(this); applyPriceFormatting(tr); triggerDelayedSave(); });
-            tdShibata.appendChild(inShibata);
-            tr.appendChild(tdShibata);
-
-            // Preço Nagumo
-            const tdNagumo = document.createElement('td');
-            tdNagumo.className = 'price-cell';
-            const inNagumo = document.createElement('input');
-            inNagumo.type = 'text';
-            inNagumo.inputMode = 'numeric';
-            inNagumo.value = (item.priceNagumo && item.priceNagumo !== 'R$ 0,00') ? item.priceNagumo : '';
-            if (!inNagumo.value) inNagumo.classList.add('default-price');
-            inNagumo.addEventListener('input', function() { formatPriceInput(this); applyPriceFormatting(tr); triggerDelayedSave(); });
-            tdNagumo.appendChild(inNagumo);
-            tr.appendChild(tdNagumo);
-
-            // Deletar
-            const tdDel = document.createElement('td');
-            const btnDel = document.createElement('button');
-            btnDel.className = 'action-btn';
-            btnDel.innerHTML = '<i class="fas fa-times"></i>';
-            btnDel.addEventListener('click', function() {
-                if (item.id) {
-                    const username = localStorage.getItem('currentUser');
-                    const pendingDeletes = JSON.parse(localStorage.getItem(`pendingDeletes_${username}`) || '[]');
-                    pendingDeletes.push(item.id);
-                    localStorage.setItem(`pendingDeletes_${username}`, JSON.stringify(pendingDeletes));
-                }
-                tr.remove();
-                saveList();
-            });
-            tdDel.appendChild(btnDel);
-            tr.appendChild(tdDel);
-
-            return tr;
-        }
-
-        function appendAddRow() {
-            const tr = document.createElement('tr');
-            tr.className = 'add-item-row';
-
-            tr.appendChild(document.createElement('td'));
-
-            const tdName = document.createElement('td');
-            const txt = document.createElement('textarea');
-            txt.className = 'item-name-input';
-            txt.placeholder = 'Adicionar novo item...';
-            txt.rows = 1;
-            txt.addEventListener('input', function() {
-                autoResizeTextarea(this);
-                showAutocomplete(this);
-            });
-            txt.addEventListener('focus', function() { currentActiveInput = this; });
-            txt.addEventListener('blur', () => setTimeout(hideAutocomplete, 200));
-            txt.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addNewItemFromRow(tr, txt.value);
-                }
-            });
-            tdName.appendChild(txt);
-            tr.appendChild(tdName);
-
-            const tdS = document.createElement('td'); tdS.className = 'price-cell';
-            const inS = document.createElement('input'); inS.type = 'text'; inS.disabled = true; inS.classList.add('default-price');
-            tdS.appendChild(inS); tr.appendChild(tdS);
-
-            const tdN = document.createElement('td'); tdN.className = 'price-cell';
-            const inN = document.createElement('input'); inN.type = 'text'; inN.disabled = true; inN.classList.add('default-price');
-            tdN.appendChild(inN); tr.appendChild(tdN);
-
-            const tdAdd = document.createElement('td');
-            const btnAdd = document.createElement('button');
-            btnAdd.className = 'action-btn add';
-            btnAdd.innerHTML = '<i class="fas fa-plus"></i>';
-            btnAdd.addEventListener('click', () => addNewItemFromRow(tr, txt.value));
-            tdAdd.appendChild(btnAdd);
-            tr.appendChild(tdAdd);
-
-            tableBody.appendChild(tr);
-        }
-
-        function addNewItemFromRow(row, name) {
-            if (!name.trim()) return;
-            const newItem = { id: Date.now(), name: name.trim(), priceShibata: '', priceNagumo: '', purchased: false };
-            const newRow = createRow(newItem);
-            tableBody.insertBefore(newRow, row);
-            row.querySelector('textarea').value = '';
-            row.querySelector('textarea').style.height = 'auto';
-            saveList();
-        }
-
+        // --- Funções de UI ---
         function autoResizeTextarea(textarea) {
             textarea.style.height = 'auto';
             textarea.style.height = textarea.scrollHeight + 'px';
         }
 
-        // --- AUTOCOMPLETE ---
-        function showAutocomplete(input) {
-            const query = normalizeString(input.value.trim());
-            if (!query) { hideAutocomplete(); return; }
+        tableBody.addEventListener('input', (event) => {
+            const target = event.target;
+            if (target.tagName.toLowerCase() === 'textarea') {
+                autoResizeTextarea(target);
 
-            const filtered = itensList.filter(item => normalizeString(item.nome).includes(query)).slice(0, 5);
-            if (filtered.length === 0) { hideAutocomplete(); return; }
+                if (target.classList.contains('item-name-input')) { 
+                    currentActiveInput = target; 
+                    updateAutocompletePosition(); 
+                    debouncedHandleAutocomplete(event); 
+                }
+            }
 
-            autocompleteSuggestions.innerHTML = '';
-            filtered.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'suggestion-item';
-                div.innerHTML = `<i class="fas fa-shopping-basket" style="color: var(--primary-color);"></i> <span>${item.nome}</span>`;
-                div.addEventListener('click', () => {
-                    input.value = item.nome;
-                    autoResizeTextarea(input);
-                    hideAutocomplete();
-                    const row = input.closest('tr');
-                    if (row.classList.contains('add-item-row')) {
-                        addNewItemFromRow(row, item.nome);
-                    } else {
-                        saveList();
+            // CORREÇÃO: SÓ chama debouncedSave se NÃO for um campo da "add-item-row"
+            const row = target.closest('tr');
+            if (row && !row.classList.contains('add-item-row') && ['textarea', 'input'].includes(target.tagName.toLowerCase())) {
+                setSyncStatus('syncing');
+                debouncedSave();
+            }
+        });
+
+        tableBody.addEventListener('focus', (event) => {
+            const target = event.target;
+            if (target.tagName.toLowerCase() === 'input' && target.type === 'text') {
+                setTimeout(() => {
+                    if (target.value !== '') {
+                        const valueLength = target.value.length;
+                        target.setSelectionRange(valueLength, valueLength);
                     }
-                });
-                autocompleteSuggestions.appendChild(div);
-            });
+                }, 1);
+            }
+            // Define o currentActiveInput e chama o autocomplete para QUALQUER campo de nome de item.
+            if (target.tagName.toLowerCase() === 'textarea' && target.classList.contains('item-name-input')) { 
+                currentActiveInput = target; 
+                handleAutocompleteInput(event); 
+            } else if (target.tagName.toLowerCase() === 'textarea') {
+                 // Para outros textareas (apenas por segurança), limpa o autocomplete
+                 closeAutocomplete();
+            }
+        }, true);
 
-            const rect = input.getBoundingClientRect();
-            autocompleteSuggestions.style.top = `${rect.bottom + window.scrollY}px`;
-            autocompleteSuggestions.style.left = `${rect.left + window.scrollX}px`;
-            autocompleteSuggestions.style.width = `${rect.width}px`;
-            autocompleteSuggestions.style.display = 'block';
+        tableBody.addEventListener('blur', (event) => {
+            const target = event.target;
+            // CORREÇÃO: Pega a linha do evento
+            const row = target.closest('tr'); 
+
+            // CORREÇÃO: SÓ formata/salva se for um campo de preço e NÃO for da "add-item-row"
+            if (target.tagName.toLowerCase() === 'input' && target.type === 'text' && row && !row.classList.contains('add-item-row')) {
+                formatCurrency(event.target);
+                comparePrices(event.target);
+                setSyncStatus('syncing'); // Define 'syncing' no blur
+                debouncedSave();
+            }
+
+            // Lógica do autocomplete (não muda)
+            if (event.target.tagName.toLowerCase() === 'textarea' && event.target.classList.contains('item-name-input')) {
+                setTimeout(() => {
+                    if (!autocompleteSuggestions.matches(':hover')) {
+                        closeAutocomplete();
+                    }
+                }, 50); 
+            }
+        }, true);
+
+
+        // --- Funções do Autocomplete ---
+
+        function updateAutocompletePosition() {
+            if (currentActiveInput) { 
+                const rect = currentActiveInput.getBoundingClientRect();
+                autocompleteSuggestions.style.top = `${rect.bottom + window.scrollY}px`;
+                autocompleteSuggestions.style.left = `${rect.left + window.scrollX}px`;
+                // Garante que a largura seja igual à do campo de texto
+                autocompleteSuggestions.style.width = `${rect.width + 16}px`; // Adiciona padding horizontal
+            }
         }
+        window.addEventListener('scroll', updateAutocompletePosition, true);
+        window.addEventListener('resize', updateAutocompletePosition);
 
-        function hideAutocomplete() {
+        function closeAutocomplete() {
             autocompleteSuggestions.style.display = 'none';
         }
 
-        function clearList() {
-            if (confirm("Tem certeza que deseja apagar TODOS os itens da lista?")) {
-                const username = localStorage.getItem('currentUser');
-                if (username) {
-                    const localItems = getCurrentLocalItems();
-                    const allIds = localItems.map(i => i.id).filter(id => id !== null);
-                    localStorage.setItem(`pendingDeletes_${username}`, JSON.stringify(allIds));
-                }
-                tableBody.innerHTML = '';
-                appendAddRow();
-                saveList();
+        const handleAutocompleteInput = (event) => {
+            const inputText = (event.target.value || '').trim();
+            currentActiveInput = event.target; 
+            updateAutocompletePosition(); 
+
+            if (inputText.length < 1 || !itensList || itensList.length === 0) {
+                autocompleteSuggestions.style.display = 'none';
+                return;
             }
-        }
 
-        function loadList() {
-            const username = localStorage.getItem('currentUser');
-            if (!username) return;
+            // NOVO: Normaliza o texto de entrada para comparação sem acentos
+            const normalizedInput = normalizeString(inputText);
 
-            const cached = localStorage.getItem(`shoppingList_${username}`);
-            const offline = localStorage.getItem(`offlineList_${username}`);
+            // NOVO: Filtra usando a string normalizada
+            const filteredItens = itensList.filter(item => 
+                normalizeString(item.nome).includes(normalizedInput)
+            );
 
-            if (offline) {
-                redrawTable(JSON.parse(offline), true);
-            } else if (cached) {
-                redrawTable(JSON.parse(cached), true);
+            if (filteredItens.length > 0) {
+                const suggestionsHTML = filteredItens
+                    .map(item => `<div class="suggestion-item" data-name="${item.nome.replace(/"/g, '&quot;')}"><span>${item.nome}</span></div>`)
+                    .slice(0, 10) // Limitar a 10 sugestões
+                    .join('');
+                autocompleteSuggestions.innerHTML = suggestionsHTML;
+                autocompleteSuggestions.style.display = 'block';
             } else {
-                appendAddRow();
+                autocompleteSuggestions.style.display = 'none';
+            }
+        };
+
+        const debouncedHandleAutocomplete = debounce(handleAutocompleteInput, 150);
+
+        autocompleteSuggestions.addEventListener('mousedown', (event) => {
+            const suggestionItem = event.target.closest('.suggestion-item');
+            if (suggestionItem && currentActiveInput) {
+                event.preventDefault(); // Impede que o input perca o foco
+                const nome = suggestionItem.dataset.name;
+                currentActiveInput.value = nome;
+
+                closeAutocomplete();
+
+                // Disparar manualmente a função de redimensionar
+                autoResizeTextarea(currentActiveInput);
+
+                // Se for o campo de NOVO item, comita para adicionar. Se for EDICÃO, apenas salva.
+                if (currentActiveInput.id === 'newItemName') {
+                    commitItem(); 
+                } else {
+                    // Item existente: apenas salva a lista atualizada
+                    setSyncStatus('syncing');
+                    debouncedSave();
+                }
+            }
+        });
+        // --- Fim das Funções do Autocomplete ---
+
+
+        function createAddItemRow(shouldFocus = false) {
+            document.querySelector('.add-item-row')?.remove();
+            const newRow = tableBody.insertRow(0);
+            newRow.classList.add('add-item-row');
+            newRow.innerHTML = `
+                <td></td>
+                <td><textarea id="newItemName" class="item-name-input" placeholder="Adicionar item" rows="1"></textarea></td>
+                <td class="price-cell"><input type="text" placeholder="R$ 0,00"></td>
+                <td class="price-cell"><input type="text" placeholder="R$ 0,00"></td>
+                <td><button class="action-btn add" onclick="commitItem()"><i class="fas fa-plus"></i></button></td>
+            `;
+            const newItemInput = document.getElementById('newItemName');
+            newItemInput.addEventListener('keydown', (event) => {
+                // Apenas comitar/mover se o autocomplete não estiver aberto e a tecla for Enter
+                if (event.key === 'Enter' && !event.shiftKey && autocompleteSuggestions.style.display !== 'block') {
+                    event.preventDefault();
+                    commitItem();
+                }
+            });
+            if (shouldFocus) newItemInput.focus();
+        }
+
+        function commitItem() {
+            const itemNameInput = document.getElementById('newItemName');
+            const itemName = itemNameInput.value.trim();
+            if (itemName === '') {
+                itemNameInput.focus();
+                return;
+            }
+
+            closeAutocomplete(); // Garante que deseja fechar ao comitar
+
+            const row = itemNameInput.closest('tr');
+            const priceShibata = row.cells[2].querySelector('input').value || 'R$ 0,00';
+            const priceNagumo = row.cells[3].querySelector('input').value || 'R$ 0,00';
+
+            // ATUALIZADO: O novo item não tem 'id'
+            buildItemRow({ 
+                id: null, // Novo item
+                name: itemName, 
+                priceShibata: priceShibata, 
+                priceNagumo: priceNagumo, 
+                purchased: false 
+            }, true); 
+
+            createAddItemRow(true);
+            saveList(); // Não é debounced, chama saveList() imediatamente
+        }
+
+        function buildItemRow(itemData, isNew = false) {
+            const newRow = tableBody.insertRow(isNew ? 0 : tableBody.rows.length);
+            if (itemData.purchased) newRow.classList.add('purchased');
+
+            // ATUALIZADO: Armazena o ID no dataset da linha
+            newRow.dataset.id = itemData.id || '';
+
+            const getPriceInputHTML = (price) => {
+                const hasValue = price && price.trim() !== 'R$ 0,00';
+                return `<input type="text" ${hasValue ? `value="${price}"` : ''} placeholder="R$ 0,00">`;
+            };
+
+            newRow.innerHTML = `
+                <td><input type="checkbox" onchange="togglePurchased(this)" ${itemData.purchased ? 'checked' : ''}></td>
+                <td><textarea class="item-name-input" rows="1">${itemData.name}</textarea></td>
+                <td class="price-cell">${getPriceInputHTML(itemData.priceShibata)}</td>
+                <td class="price-cell">${getPriceInputHTML(itemData.priceNagumo)}</td>
+                <td><button class="action-btn" onclick="removeItem(this)"><i class="fas fa-trash-alt"></i></button></td>
+            `;
+            autoResizeTextarea(newRow.cells[1].querySelector('textarea'));
+            comparePrices(newRow.cells[2].querySelector('input'));
+        }
+
+        function redrawTable(items, shouldFocusNewItem = true) {
+            tableBody.innerHTML = '';
+            if (items && items.length > 0) {
+                // ATUALIZADO: Os itens são desenhados na ordem recebida (que é 'id DESC' do servidor)
+                items.forEach(item => buildItemRow(item, false));
+                sortAndGroup();
+            }
+            createAddItemRow(shouldFocusNewItem);
+        }
+
+        function removeItem(button) {
+            if (confirm('Tem certeza de que deseja remover este item?')) {
+                const row = button.closest('tr');
+                const id = row.dataset.id; // Pega o ID do item
+                const username = localStorage.getItem('currentUser');
+
+                // ATUALIZADO: Adiciona o ID à lista de 'pendingDeletes' se ele existir
+                if (id && username) {
+                    const key = `pendingDeletes_${username}`;
+                    const pendingDeletes = JSON.parse(localStorage.getItem(key) || '[]');
+                    if (!pendingDeletes.includes(parseInt(id))) { // Evita duplicatas
+                        pendingDeletes.push(parseInt(id));
+                        localStorage.setItem(key, JSON.stringify(pendingDeletes));
+                    }
+                }
+
+                row.remove(); // Remove do DOM
+                saveList(); // Dispara o save (que agora enviará a exclusão)
             }
         }
 
-        // --- IFRAMES WAKEUP ---
+        function togglePurchased(checkbox) {
+            checkbox.closest('tr').classList.toggle('purchased', checkbox.checked);
+            saveList();
+        }
+
+        function clearList() {
+            if (confirm('Tem certeza que deseja limpar toda a lista?')) {
+                const username = localStorage.getItem('currentUser');
+                if (!username) return;
+
+                const allRows = Array.from(tableBody.querySelectorAll('tr:not(.add-item-row)'));
+                const idsToDelete = [];
+
+                // ATUALIZADO: Coleta todos os IDs para exclusão
+                allRows.forEach(row => {
+                    const id = row.dataset.id;
+                    if (id) {
+                        idsToDelete.push(parseInt(id));
+                    }
+                    row.remove(); // Remove do DOM
+                });
+
+                if (idsToDelete.length > 0) {
+                    const key = `pendingDeletes_${username}`;
+                    // Mescla com quaisquer exclusões já pendentes
+                    const pendingDeletes = JSON.parse(localStorage.getItem(key) || '[]');
+                    idsToDelete.forEach(id => {
+                        if (!pendingDeletes.includes(id)) {
+                            pendingDeletes.push(id);
+                        }
+                    });
+                    localStorage.setItem(key, JSON.stringify(pendingDeletes));
+                }
+
+                saveList(); // Dispara o save (lista de itens vazia, lista de deletes cheia)
+                createAddItemRow(true); 
+            }
+        }
+
+        // --- Eventos de Conexão ---
+        window.addEventListener('online', async () => {
+            isOnline = true;
+            // ATUALIZADO: Sincroniza primeiro as mudanças offline
+            await syncOfflineChanges(); 
+            // Em seguida, carrega a lista (que será a mesclada se a sincronização ocorrer)
+            await loadList(); 
+            startPolling(); // Reinicia o polling ao ficar online
+        });
+        window.addEventListener('offline', () => {
+            isOnline = false;
+            stopPolling(); // Para o polling ao ficar offline
+            setSyncStatus('offline');
+        });
+
+        // --- Funções de Formatação e Comparação de Preços ---
+        function formatCurrency(input) {
+            const value = input.value.trim();
+            const number = parseValueToFloat(value);
+            if (isNaN(number) || number === 0) {
+                input.value = '';
+                input.placeholder = 'R$ 0,00';
+            } else {
+                input.value = number.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                input.placeholder = 'R$ 0,00';
+            }
+        }
+
+        function parseValueToFloat(value) {
+            if (!value) return NaN;
+            return parseFloat(value.replace('R$', '').trim().replace('.', '').replace(',', '.'));
+        }
+
+        function comparePrices(input) {
+            const row = input.closest('tr');
+            if (!row || row.classList.contains('add-item-row')) return;
+            const shibataInput = row.cells[2].querySelector('input');
+            const nagumoInput = row.cells[3].querySelector('input');
+            shibataInput.classList.remove('cheapest-price', 'equal-price');
+            nagumoInput.classList.remove('cheapest-price', 'equal-price');
+            const shibataPrice = parseValueToFloat(shibataInput.value);
+            const nagumoPrice = parseValueToFloat(nagumoInput.value);
+            const validShibata = !isNaN(shibataPrice) && shibataPrice > 0;
+            const validNagumo = !isNaN(nagumoPrice) && nagumoPrice > 0;
+            if (validShibata && validNagumo) {
+                if (shibataPrice < nagumoPrice) shibataInput.classList.add('cheapest-price');
+                else if (nagumoPrice < shibataPrice) nagumoInput.classList.add('cheapest-price');
+                else { shibataInput.classList.add('equal-price'); nagumoInput.classList.add('equal-price'); }
+            } else if (validShibata) { shibataInput.classList.add('cheapest-price');
+            } else if (validNagumo) { nagumoInput.classList.add('cheapest-price'); }
+            sortAndGroup();
+        }
+
+        function sortAndGroup() {
+            const allRows = Array.from(tableBody.querySelectorAll('tr:not(.add-item-row)'));
+            const unpriced = [], shibata = [], equal = [], nagumo = [];
+            allRows.forEach(row => {
+                const pS = parseValueToFloat(row.cells[2].querySelector('input').value);
+                const pN = parseValueToFloat(row.cells[3].querySelector('input').value);
+                const vS = !isNaN(pS) && pS > 0, vN = !isNaN(pN) && pN > 0;
+                if (!vS && !vN) unpriced.push(row);
+                else if (vS && vN && pS === pN) equal.push(row);
+                else if (vS && (!vN || pS < pN)) shibata.push(row);
+                else nagumo.push(row);
+            });
+
+            // O agrupamento (unpriced -> shibata -> equal -> nagumo) é mantido, garantindo a ordenação primária por status de preço.
+            [...unpriced, ...shibata, ...equal, ...nagumo].forEach(row => tableBody.appendChild(row));
+        }
+
+        // --- Funções Auxiliares (Streamlit, Teclado Virtual) ---
         function wakeUpApp() {
-            const overlay = document.getElementById('iframe-overlay');
-            overlay.style.display = 'flex';
-            const iframe = document.getElementById('streamlit-app');
-            iframe.src = iframe.src;
-            setTimeout(() => overlay.style.display = 'none', 4000);
+            const iframeWrapper = document.getElementById('iframe-wrapper');
+            const iframeOverlay = document.getElementById('iframe-overlay');
+            iframeOverlay.style.display = 'flex';
+            let streamlitIframe = document.getElementById('streamlit-app');
+            if (streamlitIframe) streamlitIframe.remove();
+            const newIframe = document.createElement('iframe');
+            newIframe.id = 'streamlit-app';
+            newIframe.src = `https://precosmercados.streamlit.app/?embed=true&minimal=true&t=${new Date().getTime()}`;
+            newIframe.onload = () => { iframeOverlay.style.display = 'none'; };
+            iframeWrapper.prepend(newIframe);
         }
 
         function wakeUpApp2() {
-            const overlay = document.getElementById('iframe-overlay-2');
-            overlay.style.display = 'flex';
-            const iframe = document.getElementById('streamlit-app-2');
-            iframe.src = iframe.src;
-            setTimeout(() => overlay.style.display = 'none', 4000);
+            const iframeWrapper = document.getElementById('iframe-wrapper-2');
+            const iframeOverlay = document.getElementById('iframe-overlay-2');
+            iframeOverlay.style.display = 'flex';
+            let streamlitIframe = document.getElementById('streamlit-app-2');
+            if (streamlitIframe) streamlitIframe.remove();
+            const newIframe = document.createElement('iframe');
+            newIframe.id = 'streamlit-app-2';
+            newIframe.src = `https://buscaprecoauto.streamlit.app/?embed=true&minimal=true&t=${new Date().getTime()}`;
+            newIframe.onload = () => { iframeOverlay.style.display = 'none'; };
+            iframeWrapper.prepend(newIframe);
         }
 
-        // --- MONITOR DE REDE ---
-        window.addEventListener('online', () => { isOnline = true; saveList(); startPolling(); });
-        window.addEventListener('offline', () => { isOnline = false; setSyncStatus('offline'); stopPolling(); });
+        function setupVirtualKeyboardListener() {
+            if (!window.visualViewport) return;
+            const isLikelyKeyboardOpen = () => window.innerHeight - window.visualViewport.height > 150;
+            let keyboardWasOpen = isLikelyKeyboardOpen();
+            window.visualViewport.addEventListener('resize', () => {
+                const keyboardIsOpen = isLikelyKeyboardOpen();
+                if (keyboardWasOpen && !keyboardIsOpen) {
+                    if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+                         document.activeElement.blur();
+                    }
+                }
+                keyboardWasOpen = keyboardIsOpen;
+            });
+        }
 
-        // --- INICIALIZAÇÃO ---
+        // --- INICIALIZAÇÃO DA APLICAÇÃO ---
         document.addEventListener('DOMContentLoaded', async () => {
             await carregarItens();
 
@@ -1034,7 +1286,8 @@
             } else {
                 showAuth();
             }
-
+            setupVirtualKeyboardListener();
+            // ATUALIZADO: Verifica pendências para definir o status inicial
             const username = localStorage.getItem('currentUser');
             let hasPending = false;
             if (username) {
@@ -1052,12 +1305,16 @@
             }
         });
 
-        // Service Worker
+        // Service Worker Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('ServiceWorker registrado:', reg.scope))
-                    .catch(err => console.log('Falha ServiceWorker:', err));
+            navigator.serviceWorker.register('./sw.js')
+                .then(registration => {
+                console.log('ServiceWorker registrado com sucesso: ', registration.scope);
+                })
+                .catch(error => {
+                console.log('Falha ao registrar o ServiceWorker: ', error);
+                });
             });
         }
     </script>
