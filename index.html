@@ -111,7 +111,8 @@
 
         async function carregarItens() {
             try {
-                const response = await fetch(WORKER_URL); 
+                // Adicionado getAuthHeaders caso seu worker exija auth para ler os itens
+                const response = await fetch(WORKER_URL, { headers: getAuthHeaders() }); 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -181,7 +182,7 @@
                 document.getElementById('manager-price-geral').value = '';
             } catch (error) {
                 console.error(error);
-                alert('Erro ao atualizar preços no servidor.');
+                alert('Erro ao atualizar preços no servidor. Verifique os logs do seu Worker.');
             }
         }
 
