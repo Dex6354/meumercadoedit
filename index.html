@@ -10,7 +10,6 @@
     <meta property="og:description" content="Sua lista de compras inteligente com comparador de preços e otimização." />
     <meta property="og:image" content="https://meumercado.pages.dev/01.png" />
 
-
     <link rel="icon" href="01.png" type="image/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
@@ -80,7 +79,7 @@
         }
         .password-container .auth-input {
             margin-bottom: 0;
-            padding-right: 40px; /* Espaço para o ícone */
+            padding-right: 40px;
         }
         #togglePassword {
             position: absolute;
@@ -105,7 +104,6 @@
             font-size: 0.9rem;
         }
 
-        /* Ocultar app-container por padrão */
         #app-container {
             display: none;
         }
@@ -249,7 +247,7 @@
             border: 1px solid var(--primary-color);
             border-top: none;
             border-radius: 0 0 8px 8px;
-            z-index: 1002; /* Mais alto que o overlay do menu */
+            z-index: 1002;
             max-height: 200px;
             overflow-y: auto;
             display: none;
@@ -263,11 +261,9 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            /* NOVO: Linha cinza entre itens */
             border-bottom: 1px solid #666; 
         }
         .suggestion-item:last-child {
-            /* Remove a borda do último item para não duplicar o contorno */
             border-bottom: none; 
         }
         .suggestion-item:hover {
@@ -325,7 +321,7 @@
                     <span id="username-display"></span>
                     <div id="sync-status-indicator"></div>
                 </div>
-                </div>
+            </div>
 
             <div class="container">
                 <div class="section shopping-list-section">
@@ -365,8 +361,7 @@
                                 <option value="">Selecione um item da lista suspensa...</option>
                             </select>
                             <div class="manager-row">
-                                <input type="text" id="manager-price-shibata" class="auth-input" placeholder="Preço Shibata (R$ 0,00)" onblur="formatCurrency(this)">
-                                <input type="text" id="manager-price-nagumo" class="auth-input" placeholder="Preço Nagumo (R$ 0,00)" onblur="formatCurrency(this)">
+                                <input type="text" id="manager-price-geral" class="auth-input" placeholder="Preço Geral (R$ 0,00)" onblur="formatCurrency(this)">
                             </div>
                             <button class="custom-btn" onclick="atualizarPrecoFixo()">
                                 <i class="fas fa-save"></i> Salvar Preço Fixo
@@ -433,10 +428,8 @@
     <div id="autocomplete-suggestions"></div>
 
     <script>
-        // --- CONSTANTE DA API DE ITENS ---
         const WORKER_URL = '/api/shopping-list';
 
-        // --- GERENCIAMENTO DE AUTENTICAÇÃO ---
         const authContainer = document.getElementById('auth-container');
         const appContainer = document.getElementById('app-container');
         const authMessage = document.getElementById('auth-message');
@@ -467,7 +460,7 @@
             }
 
             loadList();
-            startPolling(); // Inicia a verificação contínua por atualizações
+            startPolling();
         }
 
         function showAuth(message = '', isError = false) {
@@ -530,7 +523,7 @@
         }
 
         async function handleLogout() {
-            stopPolling(); // Para a verificação contínua ao sair
+            stopPolling();
             const token = localStorage.getItem('authToken');
             if (token) {
                 try {
@@ -543,14 +536,13 @@
                 }
             }
             localStorage.removeItem('authToken');
-            // ATUALIZADO: Remove chaves de usuário específicas ao sair
             const username = localStorage.getItem('currentUser');
             if (username) {
                  localStorage.removeItem(`shoppingList_${username}`);
                  localStorage.removeItem(`offlineList_${username}`);
                  localStorage.removeItem(`pendingDeletes_${username}`);
             }
-            localStorage.removeItem('currentUser'); // Deve ser removido por último
+            localStorage.removeItem('currentUser');
             location.reload();
         }
 
@@ -581,39 +573,33 @@
             document.getElementById('item-manager-content').classList.toggle('expanded');
         }
 
-        // --- Variáveis de Sincronização e Estado ---
         const tableBody = document.getElementById('shopping-list-body');
         const statusIndicator = document.getElementById('sync-status-indicator');
-        const autocompleteSuggestions = document.getElementById('autocomplete-suggestions'); // Variável para o Autocomplete
+        const autocompleteSuggestions = document.getElementById('autocomplete-suggestions');
         let saveTimeout;
         let syncState = 'saved';
         let isOnline = navigator.onLine;
-        let pollingIntervalId = null; // ID para o intervalo do polling
+        let pollingIntervalId = null;
 
-        // --- Autocomplete Item List (Loaded from KV) ---
         let itensList = [];
 
         async function carregarItens() {
             try {
-                // ALTERADO: Agora busca do endpoint da API (Cloudflare KV)
                 const response = await fetch(WORKER_URL); 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 itensList = await response.json();
                 console.log(`Itens de Autocomplete carregados: ${itensList.length}`);
-                
-                // Popula o select do gerenciador de itens fixos
                 popularSelectItemManager();
             } catch (error) {
-                console.error('Falha ao carregar lista de itens da API (Pode ser o primeiro acesso offline):', error);
+                console.error('Falha ao carregar lista de itens da API:', error);
                 itensList = [];
             }
         }
 
         function popularSelectItemManager() {
             const select = document.getElementById('manager-item-select');
-            // Reseta mantendo apenas a primeira opção
             select.innerHTML = '<option value="">Selecione um item da lista suspensa...</option>';
             
             itensList.forEach(item => {
@@ -626,55 +612,51 @@
 
         function carregarPrecosItemManager() {
             const select = document.getElementById('manager-item-select');
-            const shibataInput = document.getElementById('manager-price-shibata');
-            const nagumoInput = document.getElementById('manager-price-nagumo');
-            
+            const precoInput = document.getElementById('manager-price-geral');
             const itemSelecionado = itensList.find(item => item.nome === select.value);
             
             if (itemSelecionado) {
-                shibataInput.value = itemSelecionado.priceShibata || '';
-                nagumoInput.value = itemSelecionado.priceNagumo || '';
+                const match = itemSelecionado.nome.match(/(.*?)\s+(R\$\s*[\d,.]+)/i);
+                precoInput.value = match ? match[2].trim() : '';
             } else {
-                shibataInput.value = '';
-                nagumoInput.value = '';
+                precoInput.value = '';
             }
         }
 
         async function atualizarPrecoFixo() {
             const select = document.getElementById('manager-item-select');
-            const nomeItem = select.value;
-            const priceShibata = document.getElementById('manager-price-shibata').value.trim() || 'R$ 0,00';
-            const priceNagumo = document.getElementById('manager-price-nagumo').value.trim() || 'R$ 0,00';
+            const nomeItemCompleto = select.value;
+            const novoPreco = document.getElementById('manager-price-geral').value.trim();
 
-            if (!nomeItem) {
+            if (!nomeItemCompleto) {
                 alert('Por favor, selecione um item primeiro.');
                 return;
             }
 
             setSyncStatus('syncing');
 
+            const itemIndex = itensList.findIndex(i => i.nome === nomeItemCompleto);
+            if (itemIndex === -1) return;
+
+            const match = nomeItemCompleto.match(/(.*?)\s+(R\$\s*[\d,.]+)/i);
+            const nomeBase = match ? match[1].trim() : nomeItemCompleto.trim();
+            const novoNomeCompleto = novoPreco ? `${nomeBase} ${novoPreco}` : nomeBase;
+
+            itensList[itemIndex].nome = novoNomeCompleto;
+
             try {
                 const response = await fetch(WORKER_URL, {
                     method: 'PUT',
                     headers: getAuthHeaders(),
-                    body: JSON.stringify({
-                        nome: nomeItem,
-                        priceShibata: priceShibata,
-                        priceNagumo: priceNagumo
-                    })
+                    body: JSON.stringify(itensList)
                 });
 
                 if (!response.ok) throw new Error('Erro ao salvar os novos preços.');
 
-                // Atualiza localmente a lista na memória da aplicação
-                const itemIndex = itensList.findIndex(i => i.nome === nomeItem);
-                if (itemIndex !== -1) {
-                    itensList[itemIndex].priceShibata = priceShibata;
-                    itensList[itemIndex].priceNagumo = priceNagumo;
-                }
-
                 setSyncStatus('saved');
-                alert(`Preços fixos de "${nomeItem}" atualizados com sucesso!`);
+                alert(`Preço fixo de "${nomeBase}" atualizado com sucesso!`);
+                popularSelectItemManager();
+                document.getElementById('manager-price-geral').value = '';
             } catch (error) {
                 console.error(error);
                 setSyncStatus('error');
@@ -682,9 +664,8 @@
             }
         }
 
-        let currentActiveInput = null; // Input ativo para o Autocomplete
+        let currentActiveInput = null;
 
-        // --- FUNÇÃO ADICIONADA: Normaliza string para comparação sem acentos ---
         function normalizeString(str) {
             return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
         }
@@ -697,7 +678,6 @@
             }
         }
 
-        // --- LÓGICA DE POLLING (SINCRONIZAÇÃO CONTÍNUA) ---
         function stopPolling() {
             if (pollingIntervalId) {
                 clearInterval(pollingIntervalId);
@@ -706,8 +686,8 @@
         }
 
         function startPolling() {
-            stopPolling(); // Garante que não haja múltiplos intervalos rodando
-            pollingIntervalId = setInterval(pollForChanges, 4000); // Verifica por mudanças a cada 4 segundos
+            stopPolling();
+            pollingIntervalId = setInterval(pollForChanges, 4000);
         }
 
         async function pollForChanges() {
@@ -721,7 +701,6 @@
                 return;
             }
 
-
             try {
                 const response = await fetch('/api/list', { headers: getAuthHeaders() });
                 if (response.status === 401) return handleLogout();
@@ -734,7 +713,7 @@
                     redrawTable(remoteItems, false); 
                 }
             } catch (error) {
-                // Falha silenciosa
+                // Silencioso
             }
         }
 
@@ -763,7 +742,6 @@
             return items;
         }
 
-        // --- LÓGICA DE SINCRONIZAÇÃO E CACHE OFFLINE ---
         async function saveList() {
             const items = getCurrentLocalItems();
             const username = localStorage.getItem('currentUser');
@@ -773,7 +751,6 @@
 
             if (!isOnline) {
                 setSyncStatus('offline');
-                console.log("Offline: Salvando alterações localmente.");
                 localStorage.setItem(`offlineList_${username}`, JSON.stringify(items));
                 return;
             }
@@ -807,8 +784,6 @@
 
                 if (!isTypingInTable) {
                     redrawTable(mergedItems, false); 
-                } else {
-                    console.log("Usuário digitando, adiando redesenho da UI.");
                 }
 
             } catch (error) {
@@ -824,12 +799,7 @@
             const pendingItemsJSON = localStorage.getItem(`offlineList_${username}`);
             const pendingDeletes = JSON.parse(localStorage.getItem(`pendingDeletes_${username}`) || '[]');
 
-            if (!pendingItemsJSON && pendingDeletes.length === 0) {
-                console.log("Nenhuma alteração offline para sincronizar.");
-                return;
-            }
-
-            console.log("Conectado. Sincronizando alterações pendentes...");
+            if (!pendingItemsJSON && pendingDeletes.length === 0) return;
 
             try {
                 const localOfflineItems = pendingItemsJSON
@@ -855,18 +825,14 @@
             const pendingOfflineItems = JSON.parse(localStorage.getItem(offlineKey));
 
             if (pendingOfflineItems) {
-                console.log("Carregando lista com alterações offline pendentes.");
                 redrawTable(pendingOfflineItems);
                 setSyncStatus('offline');
                 return;
             }
 
-            if (pendingDeletes.length > 0) {
-                setSyncStatus('offline');
-            }
+            if (pendingDeletes.length > 0) setSyncStatus('offline');
 
             if (!isOnline) {
-                console.log("Offline. Carregando lista do cache.");
                 if (syncState !== 'offline') setSyncStatus('offline');
                 const cachedItems = JSON.parse(localStorage.getItem(cacheKey) || '[]');
                 redrawTable(cachedItems);
@@ -894,7 +860,6 @@
 
         const debouncedSave = debounce(saveList, 1500);
 
-        // --- Funções de UI ---
         function autoResizeTextarea(textarea) {
             textarea.style.height = 'auto';
             textarea.style.height = textarea.scrollHeight + 'px';
@@ -957,9 +922,6 @@
             }
         }, true);
 
-
-        // --- Funções do Autocomplete ---
-
         function updateAutocompletePosition() {
             if (currentActiveInput) { 
                 const rect = currentActiveInput.getBoundingClientRect();
@@ -986,7 +948,6 @@
             }
 
             const normalizedInput = normalizeString(inputText);
-
             const filteredItens = itensList.filter(item => 
                 normalizeString(item.nome).includes(normalizedInput)
             );
@@ -1009,19 +970,19 @@
             const suggestionItem = event.target.closest('.suggestion-item');
             if (suggestionItem && currentActiveInput) {
                 event.preventDefault(); 
-                const nome = suggestionItem.dataset.name;
+                let nome = suggestionItem.dataset.name;
                 currentActiveInput.value = nome;
 
                 closeAutocomplete();
                 autoResizeTextarea(currentActiveInput);
 
                 if (currentActiveInput.id === 'newItemName') {
-                    // SE for um novo item, tenta buscar o preço fixo dele antes de injetar
-                    const fixo = itensList.find(i => i.nome === nome);
                     const row = currentActiveInput.closest('tr');
-                    if (fixo) {
-                        row.cells[2].querySelector('input').value = fixo.priceShibata || '';
-                        row.cells[3].querySelector('input').value = fixo.priceNagumo || '';
+                    const match = nome.match(/(.*?)\s+(R\$\s*[\d,.]+)/i);
+                    if (match) {
+                        currentActiveInput.value = match[1].trim();
+                        row.cells[2].querySelector('input').value = match[2].trim();
+                        row.cells[3].querySelector('input').value = match[2].trim();
                     }
                     commitItem(); 
                 } else {
@@ -1030,7 +991,6 @@
                 }
             }
         });
-
 
         function createAddItemRow(shouldFocus = false) {
             document.querySelector('.add-item-row')?.remove();
@@ -1167,7 +1127,6 @@
             }
         }
 
-        // --- Eventos de Conexão ---
         window.addEventListener('online', async () => {
             isOnline = true;
             await syncOfflineChanges(); 
@@ -1180,7 +1139,6 @@
             setSyncStatus('offline');
         });
 
-        // --- Funções de Formatação e Comparação de Preços ---
         function formatCurrency(input) {
             const value = input.value.trim();
             const number = parseValueToFloat(value);
@@ -1198,7 +1156,6 @@
             return parseFloat(value.replace('R$', '').trim().replace('.', '').replace(',', '.'));
         }
 
-        // Modificado ligeiramente para aceitar inputs que não estão na tabela principal
         function comparePrices(input) {
             const row = input.closest('tr');
             if (!row || row.classList.contains('add-item-row')) return;
@@ -1235,7 +1192,6 @@
             [...unpriced, ...shibata, ...equal, ...nagumo].forEach(row => tableBody.appendChild(row));
         }
 
-        // --- Funções Auxiliares (Streamlit, Teclado Virtual) ---
         function wakeUpApp() {
             const iframeWrapper = document.getElementById('iframe-wrapper');
             const iframeOverlay = document.getElementById('iframe-overlay');
@@ -1277,7 +1233,6 @@
             });
         }
 
-        // --- INICIALIZAÇÃO DA APLICAÇÃO ---
         document.addEventListener('DOMContentLoaded', async () => {
             await carregarItens();
 
