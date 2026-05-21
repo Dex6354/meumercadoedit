@@ -2,39 +2,60 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    // Verifica se a requisição é para a rota correta
-    if (url.pathname === '/api/shopping-list') {
+    // Cabeçalhos CORS para permitir que o Cloudflare Pages acesse o Worker
+    const corsHeaders = {
+      "Access-Control-Allow-Origin": "*", 
+      "Access-Control-Allow-Methods": "GET, PUT, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    };
+
+    // Responde imediatamente ao preflight do navegador (OPTIONS)
+    if (request.method === "OPTIONS") {
+      return new Response(null, { headers: corsHeaders });
+    }
+
+    // Verifica a rota da API
+    if (url.pathname === '/api/shopping-list' || url.pathname === '/') {
       
       // Método GET: Retorna os itens salvos no KV
       if (request.method === 'GET') {
         const dados = await env.KV.get('shopping_list_items');
-        // Se estiver vazio no KV, retorna um array vazio []
         return new Response(dados || '[]', {
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
         });
       }
 
-      // Método PUT: Atualiza/Salva a lista completa de itens recebida do front-end
+      // Método PUT: Salva a lista atualizada no KV
       if (request.method === 'PUT') {
         try {
           const itens = await request.json();
           
-          // Grava a string JSON dentro da chave do KV
           await env.KV.put('shopping_list_items', JSON.stringify(itens));
 
           return new Response(JSON.stringify({ success: true }), {
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders
+            }
           });
         } catch (error) {
-          return new Response(JSON.stringify({ error: 'JSON inválido ou erro ao salvar' }), {
+          return new Response(JSON.stringify({ error: 'Erro ao salvar os dados' }), {
             status: 400,
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders
+            }
           });
         }
       }
     }
 
-    // Retorno padrão para qualquer outra rota não mapeada
-    return new Response('Rota não encontrada', { status: 404 });
+    return new Response('Rota não encontrada', { 
+      status: 404, 
+      headers: corsHeaders 
+    });
   } 
 }
