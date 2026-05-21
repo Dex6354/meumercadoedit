@@ -256,7 +256,16 @@
             display: block;
         }
 
-        /* --- GERENCIAR ITENS (Tab 3) --- */
+        .tab-toggle-btn {
+            flex: 0 0 44px;
+            border-right: 1px solid var(--input-bg-color);
+            color: var(--secondary-text-color) !important;
+            transition: color 0.2s, background-color 0.2s;
+        }
+        .tab-toggle-btn:hover { color: var(--primary-color) !important; }
+        .tabs-wrapper.collapsed .tab-panel { display: none !important; }
+        .tabs-wrapper.collapsed .tab-toggle-btn i { transform: rotate(180deg); }
+        .tab-toggle-btn i { transition: transform 0.25s ease; }
         .manager-section-title {
             margin: 0 0 12px 0;
             font-size: 0.95rem;
@@ -486,6 +495,9 @@
 
                 <div class="tabs-wrapper">
                     <div class="tabs-nav">
+                        <button class="tab-btn tab-toggle-btn" onclick="toggleTabs(this)" title="Recolher / Expandir">
+                            <i class="fas fa-chevron-up"></i>
+                        </button>
                         <button class="tab-btn active" onclick="switchTab('tab-comparador', this)">
                             <i class="fas fa-chart-bar"></i> Comparador de Preços
                         </button>
@@ -723,6 +735,11 @@
         function openNav() { document.getElementById("side-menu").classList.add('open'); document.getElementById("page-overlay").classList.add('show'); }
         function closeNav() { document.getElementById("side-menu").classList.remove('open'); document.getElementById("page-overlay").classList.remove('show'); }
         document.addEventListener('keydown', (event) => { if (event.key === "Escape") closeNav(); });
+
+        function toggleTabs(btn) {
+            const wrapper = btn.closest('.tabs-wrapper');
+            wrapper.classList.toggle('collapsed');
+        }
 
         function switchTab(tabId, btn) {
             document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
