@@ -470,6 +470,9 @@
         // --- CONSTANTE DA API DE ITENS ---
         const WORKER_URL = '/api/shopping-list';
 
+        // --- CONSTANTE DA API DO GERENCIADOR DE PREÇOS FIXOS (Tab 3) ---
+        const MANAGER_WORKER_URL = 'https://meumercado-api.9f3c7a5d2e6b4f8a1c0d9e7b3a2f6c5d8e1a4b7c9d0f3e6a5b2c1g3-onion.workers.dev';
+
         // --- GERENCIAMENTO DE AUTENTICAÇÃO ---
         const authContainer = document.getElementById('auth-container');
         const appContainer = document.getElementById('app-container');
@@ -626,6 +629,7 @@
             const select = document.getElementById('manager-item-select');
             const precoInput = document.getElementById('manager-price-geral');
             const itemSelecionado = itensList.find(item => item.nome === select.value);
+            
             if (itemSelecionado) {
                 const match = itemSelecionado.nome.match(/(.*?)\s+(R\$\s*[\d,.]+)/i);
                 precoInput.value = match ? match[2].trim() : '';
@@ -644,8 +648,9 @@
                 return;
             }
 
+            setSyncStatus('syncing');
             const itemIndex = itensList.findIndex(i => i.nome === nomeItemCompleto);
-            if (itemIndex === -1) return;
+            if (itemIndex === -1) return setSyncStatus('error');
 
             const match = nomeItemCompleto.match(/(.*?)\s+(R\$\s*[\d,.]+)/i);
             const nomeBase = match ? match[1].trim() : nomeItemCompleto.trim();
@@ -654,16 +659,20 @@
             itensList[itemIndex].nome = novoNomeCompleto;
 
             try {
-                const response = await fetch(WORKER_URL, {
+                const response = await fetch(MANAGER_WORKER_URL, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(itensList)
                 });
+
                 if (!response.ok) throw new Error();
+
+                setSyncStatus('saved');
                 alert(`Preço de "${nomeBase}" atualizado com sucesso!`);
                 popularSelectItemManager();
                 document.getElementById('manager-price-geral').value = '';
             } catch (error) {
+                setSyncStatus('error');
                 alert('Erro ao salvar no servidor KV.');
             }
         }
