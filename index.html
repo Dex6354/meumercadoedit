@@ -290,6 +290,35 @@
         }
         .manager-form { display: flex; flex-direction: column; gap: 12px; }
         .manager-select { width: 100%; padding: 12px; background-color: var(--input-bg-color); border: 1px solid #444; border-radius: 8px; color: var(--text-color); font-size: 1rem; }
+        /* Autocomplete dropdown */
+        .manager-autocomplete-wrapper { position: relative; }
+        .manager-dropdown {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0; right: 0;
+            background-color: var(--input-bg-color);
+            border: 1px solid #555;
+            border-radius: var(--border-radius);
+            list-style: none;
+            margin: 0; padding: 0;
+            z-index: 999;
+            max-height: 220px;
+            overflow-y: auto;
+            display: none;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        }
+        .manager-dropdown.open { display: block; }
+        .manager-dropdown li {
+            padding: 11px 14px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: var(--text-color);
+            border-bottom: 1px solid #3a3a3a;
+            transition: background-color 0.15s;
+        }
+        .manager-dropdown li:last-child { border-bottom: none; }
+        .manager-dropdown li:hover, .manager-dropdown li.active { background-color: rgba(255,193,7,0.15); }
+        .manager-dropdown li mark { background: transparent; color: var(--primary-color); font-weight: 700; }
         .footer { text-align: center; padding: 16px; color: var(--secondary-text-color); font-size: 0.875rem; background-color: #282828; margin-top: auto; width: 100%; }
 
         #sync-status-indicator { 
@@ -549,37 +578,38 @@
                     </div>
 
                     <div id="tab-gerenciar" class="tab-panel">
-
-                        <!-- Editar / Remover -->
-                        <p class="manager-section-title"><i class="fas fa-edit"></i> Editar ou Remover Item</p>
                         <div class="manager-form">
-                            <select id="manager-item-select" class="manager-select" onchange="carregarDadosItemManager()">
-                                <option value="">Selecione um item...</option>
-                            </select>
-                            <input type="text" id="manager-nome-geral" class="auth-input" placeholder="Nome do item">
-                            <input type="text" id="manager-price-geral" class="auth-input" placeholder="Preço Geral (R$ 0,00)" onblur="formatCurrencyManager(this)">
-                            <div class="button-group">
-                                <button class="custom-btn" onclick="atualizarItemManager()" style="flex-grow:1;">
-                                    <i class="fas fa-save"></i> Salvar
+
+                            <!-- Campo Nome com dropdown de busca -->
+                            <div class="manager-autocomplete-wrapper">
+                                <input
+                                    type="text"
+                                    id="manager-nome-geral"
+                                    class="auth-input"
+                                    placeholder="Nome do item (buscar ou criar novo)..."
+                                    autocomplete="off"
+                                    oninput="onManagerNomeInput()"
+                                    onfocus="onManagerNomeInput()"
+                                    onblur="fecharDropdownManager()"
+                                >
+                                <ul id="manager-dropdown" class="manager-dropdown"></ul>
+                            </div>
+
+                            <!-- Campo Preço -->
+                            <input type="text" id="manager-price-geral" class="auth-input" placeholder="Preço (ex: R$ 5,00) — opcional" onblur="formatCurrencyManager(this)">
+
+                            <!-- Botões dinâmicos -->
+                            <div class="button-group" id="manager-btn-group">
+                                <button class="custom-btn" id="manager-btn-salvar" onclick="gerenciarItemManager()" style="flex-grow:1;">
+                                    <i class="fas fa-save" id="manager-btn-icon"></i>
+                                    <span id="manager-btn-label">Adicionar Item</span>
                                 </button>
-                                <button class="custom-btn secondary manager-remove-btn" onclick="removerItemManager()" style="flex-grow:1;">
+                                <button class="custom-btn secondary manager-remove-btn" id="manager-btn-remover" onclick="removerItemManager()" style="flex-grow:1; display:none;">
                                     <i class="fas fa-trash-alt"></i> Remover
                                 </button>
                             </div>
+
                         </div>
-
-                        <hr class="manager-divider">
-
-                        <!-- Adicionar Novo -->
-                        <p class="manager-section-title"><i class="fas fa-plus-circle"></i> Adicionar Novo Item</p>
-                        <div class="manager-form">
-                            <input type="text" id="manager-novo-nome" class="auth-input" placeholder="Nome do novo item">
-                            <input type="text" id="manager-novo-preco" class="auth-input" placeholder="Preço (opcional, ex: R$ 5,00)" onblur="formatCurrencyManager(this)">
-                            <button class="custom-btn" onclick="adicionarNovoItemManager()">
-                                <i class="fas fa-plus"></i> Adicionar Item
-                            </button>
-                        </div>
-
                     </div>
 
                     <div id="tab-itens" class="tab-panel">
@@ -817,7 +847,8 @@
 
         // --- GERENCIAR ITENS (Tab 3) ---
 
-        // Extrai nome base e preço de um item como "Arroz R$ 5,00"
+        let _managerItemOriginal = null; // Nome original do item carregado (null = modo novo)
+
         function extrairNomeEPreco(nomeCompleto) {
             const match = nomeCompleto.match(/(.*?)\s+(R\$\s*[\d,.]+)\s*$/i);
             return match
@@ -826,36 +857,83 @@
         }
 
         function popularSelectItemManager() {
-            const select = document.getElementById('manager-item-select');
-            if (!select) return;
-            const valorAtual = select.value;
-            select.innerHTML = '<option value="">Selecione um item...</option>';
-            itensList.forEach(item => {
-                if (item.nome) {
-                    const opt = document.createElement('option');
-                    opt.value = item.nome;
-                    opt.textContent = item.nome;
-                    select.appendChild(opt);
-                }
-            });
-            // Mantém seleção se ainda existir
-            if (valorAtual) select.value = valorAtual;
+            // Mantido para compatibilidade com salvarItensNoServidor
         }
 
-        function carregarDadosItemManager() {
-            const select = document.getElementById('manager-item-select');
-            const nomeInput = document.getElementById('manager-nome-geral');
-            const precoInput = document.getElementById('manager-price-geral');
-            const item = itensList.find(i => i.nome === select.value);
+        // Abre o dropdown filtrando itensList pelo texto digitado
+        function onManagerNomeInput() {
+            const input = document.getElementById('manager-nome-geral');
+            const dropdown = document.getElementById('manager-dropdown');
+            const termo = normalizeString(input.value.trim());
 
-            if (item) {
-                const { nomeBase, preco } = extrairNomeEPreco(item.nome);
-                nomeInput.value = nomeBase;
-                precoInput.value = preco;
-            } else {
-                nomeInput.value = '';
-                precoInput.value = '';
+            // Se o usuário limpou o campo, volta ao modo "novo"
+            if (_managerItemOriginal && input.value.trim() === '') {
+                _managerItemOriginal = null;
+                atualizarBotoesManager(false);
             }
+
+            const filtrados = itensList.filter(i =>
+                i.nome && (!termo || normalizeString(i.nome).includes(termo))
+            ).slice(0, 30);
+
+            dropdown.innerHTML = '';
+
+            if (filtrados.length === 0) {
+                dropdown.classList.remove('open');
+                return;
+            }
+
+            filtrados.forEach(item => {
+                const { nomeBase } = extrairNomeEPreco(item.nome);
+                const li = document.createElement('li');
+                // Destaca o trecho digitado
+                if (termo) {
+                    const idx = normalizeString(nomeBase).indexOf(termo);
+                    if (idx >= 0) {
+                        li.innerHTML =
+                            escapeHtml(nomeBase.slice(0, idx)) +
+                            '<mark>' + escapeHtml(nomeBase.slice(idx, idx + input.value.trim().length)) + '</mark>' +
+                            escapeHtml(nomeBase.slice(idx + input.value.trim().length));
+                    } else {
+                        li.textContent = nomeBase;
+                    }
+                } else {
+                    li.textContent = nomeBase;
+                }
+                li.addEventListener('mousedown', (e) => {
+                    e.preventDefault(); // Evita blur antes do click
+                    selecionarItemManager(item.nome);
+                });
+                dropdown.appendChild(li);
+            });
+
+            dropdown.classList.add('open');
+        }
+
+        function fecharDropdownManager() {
+            setTimeout(() => {
+                const dropdown = document.getElementById('manager-dropdown');
+                if (dropdown) dropdown.classList.remove('open');
+            }, 150);
+        }
+
+        function selecionarItemManager(nomeCompleto) {
+            const { nomeBase, preco } = extrairNomeEPreco(nomeCompleto);
+            document.getElementById('manager-nome-geral').value = nomeBase;
+            document.getElementById('manager-price-geral').value = preco;
+            document.getElementById('manager-dropdown').classList.remove('open');
+            _managerItemOriginal = nomeCompleto; // Marca como edição
+            atualizarBotoesManager(true);
+        }
+
+        function atualizarBotoesManager(modoEdicao) {
+            document.getElementById('manager-btn-icon').className = modoEdicao ? 'fas fa-save' : 'fas fa-plus';
+            document.getElementById('manager-btn-label').textContent = modoEdicao ? 'Salvar' : 'Adicionar Item';
+            document.getElementById('manager-btn-remover').style.display = modoEdicao ? '' : 'none';
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
         }
 
         async function salvarItensNoServidor(mensagemSucesso) {
@@ -866,31 +944,42 @@
             });
             if (!response.ok) throw new Error();
             setSyncStatus('saved');
-            popularSelectItemManager();
-            await carregarItens(); // Recarrega itensList para autocomplete e tab 4
+            await carregarItens();
             alert(mensagemSucesso);
         }
 
-        async function atualizarItemManager() {
-            const select = document.getElementById('manager-item-select');
-            const nomeItemOriginal = select.value;
-            const novoNomeBase = document.getElementById('manager-nome-geral').value.trim();
-            const novoPreco = document.getElementById('manager-price-geral').value.trim();
+        async function gerenciarItemManager() {
+            const nomeBase = document.getElementById('manager-nome-geral').value.trim();
+            const preco    = document.getElementById('manager-price-geral').value.trim();
 
-            if (!nomeItemOriginal) { alert('Selecione um item primeiro.'); return; }
-            if (!novoNomeBase)     { alert('O nome do item não pode ficar vazio.'); return; }
+            if (!nomeBase) { alert('Digite o nome do item.'); return; }
 
-            const itemIndex = itensList.findIndex(i => i.nome === nomeItemOriginal);
-            if (itemIndex === -1) return;
-
-            const novoNomeCompleto = novoPreco ? `${novoNomeBase} ${novoPreco}` : novoNomeBase;
-            itensList[itemIndex].nome = novoNomeCompleto;
-
+            const nomeCompleto = preco ? `${nomeBase} ${preco}` : nomeBase;
             setSyncStatus('syncing');
+
             try {
-                await salvarItensNoServidor(`"${novoNomeBase}" atualizado com sucesso!`);
-                // Atualiza a seleção para o novo nome
-                document.getElementById('manager-item-select').value = novoNomeCompleto;
+                if (_managerItemOriginal) {
+                    // --- MODO EDIÇÃO ---
+                    const idx = itensList.findIndex(i => i.nome === _managerItemOriginal);
+                    if (idx === -1) { setSyncStatus('error'); return; }
+                    itensList[idx].nome = nomeCompleto;
+                    await salvarItensNoServidor(`"${nomeBase}" atualizado com sucesso!`);
+                    _managerItemOriginal = nomeCompleto; // Atualiza referência
+                } else {
+                    // --- MODO ADIÇÃO ---
+                    if (itensList.some(i => normalizeString(i.nome) === normalizeString(nomeCompleto))) {
+                        setSyncStatus('saved');
+                        alert('Já existe um item com esse nome na lista.');
+                        return;
+                    }
+                    itensList.push({ nome: nomeCompleto });
+                    await salvarItensNoServidor(`"${nomeBase}" adicionado com sucesso!`);
+                    // Limpa o form após adicionar
+                    document.getElementById('manager-nome-geral').value = '';
+                    document.getElementById('manager-price-geral').value = '';
+                    _managerItemOriginal = null;
+                    atualizarBotoesManager(false);
+                }
             } catch {
                 setSyncStatus('error');
                 alert('Erro ao salvar no servidor.');
@@ -898,50 +987,28 @@
         }
 
         async function removerItemManager() {
-            const select = document.getElementById('manager-item-select');
-            const nomeItem = select.value;
-            if (!nomeItem) { alert('Selecione um item para remover.'); return; }
+            if (!_managerItemOriginal) { alert('Selecione um item para remover.'); return; }
+            const { nomeBase } = extrairNomeEPreco(_managerItemOriginal);
+            if (!confirm(`Remover "${nomeBase}" da lista de itens?`)) return;
 
-            if (!confirm(`Remover "${nomeItem}" da lista de itens?`)) return;
-
-            itensList = itensList.filter(i => i.nome !== nomeItem);
-
+            itensList = itensList.filter(i => i.nome !== _managerItemOriginal);
             setSyncStatus('syncing');
             try {
-                await salvarItensNoServidor(`"${nomeItem}" removido com sucesso!`);
+                await salvarItensNoServidor(`"${nomeBase}" removido com sucesso!`);
                 document.getElementById('manager-nome-geral').value = '';
                 document.getElementById('manager-price-geral').value = '';
+                _managerItemOriginal = null;
+                atualizarBotoesManager(false);
             } catch {
                 setSyncStatus('error');
                 alert('Erro ao remover no servidor.');
             }
         }
 
-        async function adicionarNovoItemManager() {
-            const nomeBase = document.getElementById('manager-novo-nome').value.trim();
-            const preco    = document.getElementById('manager-novo-preco').value.trim();
-
-            if (!nomeBase) { alert('Digite o nome do novo item.'); return; }
-
-            const nomeCompleto = preco ? `${nomeBase} ${preco}` : nomeBase;
-
-            // Verifica duplicata
-            if (itensList.some(i => normalizeString(i.nome) === normalizeString(nomeCompleto))) {
-                alert('Já existe um item com esse nome na lista.'); return;
-            }
-
-            itensList.push({ nome: nomeCompleto });
-
-            setSyncStatus('syncing');
-            try {
-                await salvarItensNoServidor(`"${nomeBase}" adicionado com sucesso!`);
-                document.getElementById('manager-novo-nome').value = '';
-                document.getElementById('manager-novo-preco').value = '';
-            } catch {
-                setSyncStatus('error');
-                alert('Erro ao adicionar no servidor.');
-            }
-        }
+        // Antigas funções mantidas como stub para não quebrar chamadas legadas
+        function carregarDadosItemManager() {}
+        async function atualizarItemManager() { await gerenciarItemManager(); }
+        async function adicionarNovoItemManager() { await gerenciarItemManager(); }
 
         function formatCurrencyManager(input) {
             const value = input.value.trim();
