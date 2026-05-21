@@ -205,56 +205,13 @@
         #iframe-overlay, #iframe-overlay-2 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); display: none; justify-content: center; align-items: center; flex-direction: column; gap: 15px; z-index: 5; color: var(--text-color); text-align: center; }
         .loader { border: 4px solid var(--input-bg-color); border-top: 4px solid var(--primary-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        /* --- ABAS (TABS) --- */
-        .tabs-wrapper {
-            background-color: var(--card-color);
-            border-radius: var(--border-radius);
-            margin-bottom: 24px;
-            overflow: hidden;
-        }
-        .tabs-nav {
-            display: flex;
-            background-color: #1a1a1a;
-            border-bottom: 2px solid var(--input-bg-color);
-            overflow-x: auto;
-            scrollbar-width: none;
-        }
-        .tabs-nav::-webkit-scrollbar { display: none; }
-        .tab-btn {
-            flex: 1;
-            padding: 13px 16px;
-            background: none;
-            border: none;
-            border-bottom: 3px solid transparent;
-            margin-bottom: -2px;
-            color: var(--secondary-text-color);
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: color 0.2s, border-color 0.2s, background-color 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        .tab-btn:hover {
-            color: var(--text-color);
-            background-color: #252525;
-        }
-        .tab-btn.active {
-            color: var(--primary-color);
-            border-bottom-color: var(--primary-color);
-            background-color: var(--card-color);
-        }
-        .tab-btn i { font-size: 0.85rem; }
-        .tab-panel {
-            display: none;
-            padding: 20px 16px;
-        }
-        .tab-panel.active {
-            display: block;
-        }
+        #comparator-section, #comparator-section-2 { padding-top: 0; padding-bottom: 0; margin-bottom: 24px; }
+        .collapsible-header { cursor: pointer; padding: 20px 16px; display: flex; justify-content: space-between; align-items: center; }
+        .collapsible-header h2 { margin: 0; font-size: 1.5rem; color: var(--primary-color); }
+        .collapsible-header .fas.fa-chevron-down { transition: transform 0.3s ease; color: var(--secondary-text-color); }
+        .collapsible-header.active .fas.fa-chevron-down { transform: rotate(180deg); }
+        .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-out; padding: 0 16px; }
+        .collapsible-content.expanded { max-height: 100vh; padding-bottom: 20px; }
         .footer { text-align: center; padding: 16px; color: var(--secondary-text-color); font-size: 0.875rem; background-color: #282828; margin-top: auto; width: 100%; }
 
         #sync-status-indicator { 
@@ -391,17 +348,12 @@
                     </div>
                 </div>
 
-                <div class="tabs-wrapper">
-                    <div class="tabs-nav">
-                        <button class="tab-btn active" onclick="switchTab('tab-comparador', this)">
-                            <i class="fas fa-chart-bar"></i> Comparador de Preços
-                        </button>
-                        <button class="tab-btn" onclick="switchTab('tab-busca', this)">
-                            <i class="fas fa-search-dollar"></i> Busca Preço Auto
-                        </button>
+                <div class="section" id="comparator-section">
+                    <div class="section-header collapsible-header" onclick="toggleComparator()">
+                        <h2>Comparador de Preços</h2>
+                        <i class="fas fa-chevron-down"></i>
                     </div>
-
-                    <div id="tab-comparador" class="tab-panel active">
+                    <div id="comparator-content" class="collapsible-content">
                         <div id="iframe-wrapper" class="iframe-container">
                             <div id="iframe-overlay">
                                 <div class="loader"></div>
@@ -418,8 +370,14 @@
                             </a>
                         </div>
                     </div>
+                </div>
 
-                    <div id="tab-busca" class="tab-panel">
+                <div class="section" id="comparator-section-2">
+                    <div class="section-header collapsible-header" onclick="toggleComparator2()">
+                        <h2>Busca Preço Auto</h2>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div id="comparator-content-2" class="collapsible-content">
                         <div id="iframe-wrapper-2" class="iframe-container">
                             <div id="iframe-overlay-2">
                                 <div class="loader"></div>
@@ -581,11 +539,14 @@
         function closeNav() { document.getElementById("side-menu").classList.remove('open'); document.getElementById("page-overlay").classList.remove('show'); }
         document.addEventListener('keydown', (event) => { if (event.key === "Escape") closeNav(); });
 
-        function switchTab(tabId, btn) {
-            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            btn.classList.add('active');
+        function toggleComparator() {
+            document.querySelector('#comparator-section .collapsible-header').classList.toggle('active');
+            document.getElementById('comparator-content').classList.toggle('expanded');
+        }
+
+        function toggleComparator2() {
+            document.querySelector('#comparator-section-2 .collapsible-header').classList.toggle('active');
+            document.getElementById('comparator-content-2').classList.toggle('expanded');
         }
 
         // --- Variáveis de Sincronização e Estado ---
