@@ -589,7 +589,7 @@
                                     placeholder="Nome do item (buscar ou criar novo)..."
                                     autocomplete="off"
                                     oninput="onManagerNomeInput()"
-                                    onfocus="onManagerNomeInput()"
+                                    onfocus="abrirDropdownCompleto()"
                                     onblur="fecharDropdownManager()"
                                 >
                                 <ul id="manager-dropdown" class="manager-dropdown"></ul>
@@ -861,6 +861,44 @@
         }
 
         // Abre o dropdown filtrando itensList pelo texto digitado
+        function abrirDropdownCompleto() {
+            const dropdown = document.getElementById('manager-dropdown');
+            const input = document.getElementById('manager-nome-geral');
+            const termo = normalizeString(input.value.trim());
+
+            const filtrados = itensList.filter(i =>
+                i.nome && (!termo || normalizeString(i.nome).includes(termo))
+            ).slice(0, 50);
+
+            dropdown.innerHTML = '';
+            if (filtrados.length === 0) return;
+
+            filtrados.forEach(item => {
+                const { nomeBase } = extrairNomeEPreco(item.nome);
+                const li = document.createElement('li');
+                if (termo) {
+                    const idx = normalizeString(nomeBase).indexOf(termo);
+                    if (idx >= 0) {
+                        li.innerHTML =
+                            escapeHtml(nomeBase.slice(0, idx)) +
+                            '<mark>' + escapeHtml(nomeBase.slice(idx, idx + input.value.trim().length)) + '</mark>' +
+                            escapeHtml(nomeBase.slice(idx + input.value.trim().length));
+                    } else {
+                        li.textContent = nomeBase;
+                    }
+                } else {
+                    li.textContent = nomeBase;
+                }
+                li.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    selecionarItemManager(item.nome);
+                });
+                dropdown.appendChild(li);
+            });
+
+            dropdown.classList.add('open');
+        }
+
         function onManagerNomeInput() {
             const input = document.getElementById('manager-nome-geral');
             const dropdown = document.getElementById('manager-dropdown');
