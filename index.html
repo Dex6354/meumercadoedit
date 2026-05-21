@@ -647,7 +647,7 @@
             try {
                 const response = await fetch(WORKER_URL, {
                     method: 'PUT',
-                    headers: getAuthHeaders(),
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(itensList)
                 });
 
