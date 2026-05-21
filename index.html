@@ -13,6 +13,9 @@
             --text-color: #f0f0f0;
             --secondary-text-color: #a0a0a0;
             --primary-color: #ffc107;
+            --green-highlight: #4CAF50;
+            --danger-color: #f44336;
+            --yellow-sync-color: #ffc107;
             --border-radius: 12px;
             --input-bg-color: #383838;
         }
@@ -68,6 +71,15 @@
         .manager-form { display: flex; flex-direction: column; gap: 12px; }
         .manager-select { width: 100%; padding: 12px; background-color: var(--input-bg-color); border: 1px solid #444; border-radius: 8px; color: var(--text-color); font-size: 1rem; }
         .manager-row { display: flex; gap: 10px; }
+
+        #sync-status-indicator { 
+            width: 12px; height: 12px; border-radius: 50%; 
+            background-color: var(--green-highlight); transition: background-color 0.5s ease; 
+        }
+        .status-syncing { background-color: var(--yellow-sync-color) !important; }
+        .status-error { background-color: var(--danger-color) !important; }
+        .status-saved { background-color: var(--green-highlight) !important; }
+        .status-offline { background-color: #7986cb !important; }
     </style>
 </head>
 <body>
@@ -75,7 +87,10 @@
     <div class="section" id="item-manager-section">
         <div class="section-header collapsible-header" onclick="toggleItemManager()">
             <h2>Gerenciar Itens (Preço Fixo)</h2>
-            <i class="fas fa-chevron-down"></i>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div id="sync-status-indicator" class="status-saved"></div>
+                <i class="fas fa-chevron-down"></i>
+            </div>
         </div>
         <div id="item-manager-content" class="collapsible-content">
             <div class="manager-form">
@@ -93,15 +108,21 @@
     </div>
 
     <script>
+        // SE O WORKER ESTIVER NOUTRO DOMÍNIO, ALTERE PARA O URL COMPLETO (Ex: 'https://seu-worker.workers.dev/api/shopping-list')
         const WORKER_URL = '/api/shopping-list';
         let itensList = [];
 
         function getAuthHeaders() {
-            const token = localStorage.getItem('authToken');
+            const token = localStorage.getItem('authToken') || '';
             return {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             };
+        }
+
+        function setSyncStatus(state) {
+            const indicator = document.getElementById('sync-status-indicator');
+            if (indicator) indicator.className = `status-${state}`;
         }
 
         function toggleItemManager() {
@@ -110,17 +131,17 @@
         }
 
         async function carregarItens() {
+            setSyncStatus('syncing');
             try {
-                // Adicionado getAuthHeaders caso seu worker exija auth para ler os itens
                 const response = await fetch(WORKER_URL, { headers: getAuthHeaders() }); 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`Erro HTTP: ${response.status}`);
+                
                 itensList = await response.json();
                 popularSelectItemManager();
+                setSyncStatus('saved');
             } catch (error) {
-                console.error('Falha ao carregar lista de itens da API:', error);
-                itensList = [];
+                console.error('Falha ao carregar itens:', error);
+                setSyncStatus('error');
             }
         }
 
@@ -129,20 +150,25 @@
             select.innerHTML = '<option value="">Selecione um item da lista suspensa...</option>';
             
             itensList.forEach(item => {
-                const opt = document.createElement('option');
-                opt.value = item.nome;
-                opt.textContent = item.nome;
-                select.appendChild(opt);
+                // Suporta tanto a propriedade 'nome' quanto 'name' do banco/KV
+                const nomeItem = item.nome || item.name || '';
+                if (nomeItem) {
+                    const opt = document.createElement('option');
+                    opt.value = nomeItem;
+                    opt.textContent = nomeItem;
+                    select.appendChild(opt);
+                }
             });
         }
 
         function carregarPrecosItemManager() {
             const select = document.getElementById('manager-item-select');
             const precoInput = document.getElementById('manager-price-geral');
-            const itemSelecionado = itensList.find(item => item.nome === select.value);
+            const itemSelecionado = itensList.find(item => (item.nome || item.name) === select.value);
             
             if (itemSelecionado) {
-                const match = itemSelecionado.nome.match(/(.*?)\s+(R\$\s*[\d,.]+)/i);
+                const nomeItem = itemSelecionado.nome || itemSelecionado.name || '';
+                const match = nomeItem.match(/(.*?)\s+(R\$\s*[\d,.]+)/i);
                 precoInput.value = match ? match[2].trim() : '';
             } else {
                 precoInput.value = '';
@@ -159,14 +185,25 @@
                 return;
             }
 
-            const itemIndex = itensList.findIndex(i => i.nome === nomeItemCompleto);
-            if (itemIndex === -1) return;
+            setSyncStatus('syncing');
+
+            const itemIndex = itensList.findIndex(item => (item.nome || item.name) === nomeItemCompleto);
+            if (itemIndex === -1) {
+                setSyncStatus('error');
+                alert('Item não encontrado na lista local.');
+                return;
+            }
 
             const match = nomeItemCompleto.match(/(.*?)\s+(R\$\s*[\d,.]+)/i);
             const nomeBase = match ? match[1].trim() : nomeItemCompleto.trim();
             const novoNomeCompleto = novoPreco ? `${nomeBase} ${novoPreco}` : nomeBase;
 
-            itensList[itemIndex].nome = novoNomeCompleto;
+            // Atualiza a propriedade correta detectada
+            if (itensList[itemIndex].nome !== undefined) {
+                itensList[itemIndex].nome = novoNomeCompleto;
+            } else {
+                itensList[itemIndex].name = novoNomeCompleto;
+            }
 
             try {
                 const response = await fetch(WORKER_URL, {
@@ -175,14 +212,19 @@
                     body: JSON.stringify(itensList)
                 });
 
-                if (!response.ok) throw new Error('Erro ao salvar os novos preços.');
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Status ${response.status}: ${errorText || 'Erro no servidor'}`);
+                }
 
-                alert(`Preço fixo de "${nomeBase}" atualizado com sucesso!`);
+                setSyncStatus('saved');
+                alert(`Preço de "${nomeBase}" atualizado com sucesso!`);
                 popularSelectItemManager();
                 document.getElementById('manager-price-geral').value = '';
             } catch (error) {
                 console.error(error);
-                alert('Erro ao atualizar preços no servidor. Verifique os logs do seu Worker.');
+                setSyncStatus('error');
+                alert(`Erro ao salvar no servidor:\n${error.message}`);
             }
         }
 
@@ -194,7 +236,6 @@
                 input.placeholder = 'R$ 0,00';
             } else {
                 input.value = number.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                input.placeholder = 'R$ 0,00';
             }
         }
 
