@@ -10,7 +10,6 @@
     <meta property="og:description" content="Sua lista de compras inteligente com comparador de preços e otimização." />
     <meta property="og:image" content="https://meumercado.pages.dev/01.png" />
 
-
     <link rel="icon" href="01.png" type="image/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
@@ -80,7 +79,7 @@
         }
         .password-container .auth-input {
             margin-bottom: 0;
-            padding-right: 40px; /* Espaço para o ícone */
+            padding-right: 40px;
         }
         #togglePassword {
             position: absolute;
@@ -556,21 +555,18 @@
         function closeNav() { document.getElementById("side-menu").classList.remove('open'); document.getElementById("page-overlay").classList.remove('show'); }
         document.addEventListener('keydown', (event) => { if (event.key === "Escape") closeNav(); });
 
-        // --- NOVA FUNÇÃO DE TROCA DE ABAS ---
+        // --- INTERFACE DE ABAS ---
         function switchTab(tabId) {
-            // Remove active de todos os botões e conteúdos
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
 
-            // Adiciona active no botão clicado correspondente
             const activeBtn = document.querySelector(`.tab-btn[onclick*="${tabId}"]`);
             if (activeBtn) activeBtn.classList.add('active');
 
-            // Ativa o container correto
             document.getElementById(tabId).classList.add('active');
         }
 
-        // --- Variáveis de Sincronização e Estado ---
+        // --- VARIÁVEIS DE ESTADO E SYNC ---
         const tableBody = document.getElementById('shopping-list-body');
         const statusIndicator = document.getElementById('sync-status-indicator');
         const autocompleteSuggestions = document.getElementById('autocomplete-suggestions');
@@ -579,18 +575,14 @@
         let isOnline = navigator.onLine;
         let pollingIntervalId = null;
 
-        // --- Autocomplete Item List (Loaded from KV) ---
         let itensList = [];
         async function carregarItens() {
             try {
                 const response = await fetch(WORKER_URL);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 itensList = await response.json();
-                console.log(`Itens de Autocomplete carregados: ${itensList.length}`);
             } catch (error) {
-                console.error('Falha ao carregar lista de itens da API (Pode ser o primeiro acesso offline):', error);
+                console.error('Falha ao carregar lista de itens da API:', error);
                 itensList = [];
             }
         }
@@ -601,7 +593,7 @@
             return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
         }
 
-         Hellenização setSyncStatus(newState) {
+        function setSyncStatus(newState) {
             syncState = newState;
             statusIndicator.className = `status-${newState}`;
             if (newState === 'error') {
@@ -609,7 +601,6 @@
             }
         }
 
-        // --- LÓGICA DE POLLING (SINCRONIZAÇÃO CONTÍNUA) ---
         function stopPolling() {
             if (pollingIntervalId) {
                 clearInterval(pollingIntervalId);
@@ -624,11 +615,7 @@
 
         async function pollForChanges() {
             const activeEl = document.activeElement;
-            if (!isOnline || 
-                document.hidden || 
-                syncState === 'syncing' || 
-                (activeEl && ['INPUT', 'TEXTAREA'].includes(activeEl.tagName) && tableBody.contains(activeEl))) 
-            {
+            if (!isOnline || document.hidden || syncState === 'syncing' || (activeEl && ['INPUT', 'TEXTAREA'].includes(activeEl.tagName) && tableBody.contains(activeEl))) {
                 return;
             }
 
@@ -643,7 +630,7 @@
                     redrawTable(remoteItems, false);
                 }
             } catch (error) {
-                // Falha silenciosa
+                // Silencioso
             }
         }
 
@@ -672,7 +659,6 @@
             return items;
         }
 
-        // --- LÓGICA DE SINCRONIZAÇÃO E CACHE OFFLINE ---
         async function saveList() {
             const items = getCurrentLocalItems();
             const username = localStorage.getItem('currentUser');
@@ -681,7 +667,6 @@
             const pendingDeletes = JSON.parse(localStorage.getItem(`pendingDeletes_${username}`) || '[]');
             if (!isOnline) {
                 setSyncStatus('offline');
-                console.log("Offline: Salvando alterações localmente.");
                 localStorage.setItem(`offlineList_${username}`, JSON.stringify(items));
                 return;
             }
@@ -713,13 +698,367 @@
                 const isTypingInTable = activeEl && ['INPUT', 'TEXTAREA'].includes(activeEl.tagName) && tableBody.contains(activeEl);
                 if (!isTypingInTable) {
                     redrawTable(mergedItems, false);
-                } else {
-                    console.log("Usuário digitando, adiando redesenho da UI.");
                 }
             } catch (error) {
                 setSyncStatus('error');
                 console.error("Erro ao salvar online:", error);
             }
+        }
+
+        function triggerDelayedSave() {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(saveList, 1500);
+        }
+
+        // --- ENGENHARIA DE PREÇOS E FORMATATAÇÃO ---
+        function parsePrice(val) {
+            if (!val) return 0;
+            let clean = val.replace(/[^\d,.-]/g, '').replace(',', '.');
+            let num = parseFloat(clean);
+            return isNaN(num) ? 0 : num;
+        }
+
+        function formatCurrency(num) {
+            return 'R$ ' + num.toFixed(2).replace('.', ',');
+        }
+
+        function applyPriceFormatting(row) {
+            const shibataInput = row.cells[2].querySelector('input');
+            const nagumoInput = row.cells[3].querySelector('input');
+
+            let pShibata = parsePrice(shibataInput.value);
+            let pNagumo = parsePrice(nagumoInput.value);
+
+            shibataInput.classList.remove('cheapest-price', 'equal-price');
+            nagumoInput.classList.remove('cheapest-price', 'equal-price');
+
+            if (pShibata > 0 || pNagumo > 0) {
+                if (pShibata > 0 && pNagumo > 0) {
+                    if (pShibata < pNagumo) {
+                        shibataInput.classList.add('cheapest-price');
+                    } else if (pNagumo < pShibata) {
+                        nagumoInput.classList.add('cheapest-price');
+                    } else {
+                        shibataInput.classList.add('equal-price');
+                        nagumoInput.classList.add('equal-price');
+                    }
+                } else if (pShibata > 0) {
+                    shibataInput.classList.add('cheapest-price');
+                } else if (pNagumo > 0) {
+                    nagumoInput.classList.add('cheapest-price');
+                }
+            }
+        }
+
+        function formatPriceInput(input) {
+            let value = input.value.replace(/\D/g, '');
+            if (value === '' || parseInt(value) === 0) {
+                input.value = '';
+                input.classList.add('default-price');
+            } else {
+                let num = parseInt(value) / 100;
+                input.value = formatCurrency(num);
+                input.classList.remove('default-price');
+            }
+        }
+
+        // --- REDRAW DA TABELA ---
+        function redrawTable(items, isInitialLoad = false) {
+            const focusedElementId = document.activeElement ? document.activeElement.id : null;
+            const focusedRowIndex = document.activeElement && document.activeElement.closest('tr') ? document.activeElement.closest('tr').rowIndex : -1;
+            const focusedCellIndex = document.activeElement && document.activeElement.closest('td') ? document.activeElement.closest('td').cellIndex : -1;
+            const selectionStart = document.activeElement ? document.activeElement.selectionStart : null;
+            const selectionEnd = document.activeElement ? document.activeElement.selectionEnd : null;
+
+            tableBody.innerHTML = '';
+
+            items.forEach(item => {
+                const row = createRow(item);
+                tableBody.appendChild(row);
+                applyPriceFormatting(row);
+            });
+
+            appendAddRow();
+
+            if (focusedRowIndex !== -1 && focusedCellIndex !== -1) {
+                const targetRow = tableBody.rows[focusedRowIndex - 1];
+                if (targetRow) {
+                    const targetCell = targetRow.cells[focusedCellIndex];
+                    if (targetCell) {
+                        const input = targetCell.querySelector('input, textarea');
+                        if (input) {
+                            input.focus();
+                            if (selectionStart !== null && selectionEnd !== null && typeof input.setSelectionRange === 'function') {
+                                try { input.setSelectionRange(selectionStart, selectionEnd); } catch(e){}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function createRow(item) {
+            const tr = document.createElement('tr');
+            tr.dataset.id = item.id;
+            if (item.purchased) tr.classList.add('purchased');
+
+            // Checkbox
+            const tdCheck = document.createElement('td');
+            const chk = document.createElement('input');
+            chk.type = 'checkbox';
+            chk.checked = item.purchased;
+            chk.addEventListener('change', function() {
+                tr.classList.toggle('purchased', this.checked);
+                saveList();
+            });
+            tdCheck.appendChild(chk);
+            tr.appendChild(tdCheck);
+
+            // Nome do Item
+            const tdName = document.createElement('td');
+            const txt = document.createElement('textarea');
+            txt.className = 'item-name-input';
+            txt.rows = 1;
+            txt.value = item.name;
+            txt.addEventListener('input', function() {
+                autoResizeTextarea(this);
+                showAutocomplete(this);
+                triggerDelayedSave();
+            });
+            txt.addEventListener('focus', function() { currentActiveInput = this; });
+            txt.addEventListener('blur', () => setTimeout(hideAutocomplete, 200));
+            tdName.appendChild(txt);
+            tr.appendChild(tdName);
+            setTimeout(() => autoResizeTextarea(txt), 0);
+
+            // Preço Shibata
+            const tdShibata = document.createElement('td');
+            tdShibata.className = 'price-cell';
+            const inShibata = document.createElement('input');
+            inShibata.type = 'text';
+            inShibata.inputMode = 'numeric';
+            inShibata.value = (item.priceShibata && item.priceShibata !== 'R$ 0,00') ? item.priceShibata : '';
+            if (!inShibata.value) inShibata.classList.add('default-price');
+            inShibata.addEventListener('input', function() { formatPriceInput(this); applyPriceFormatting(tr); triggerDelayedSave(); });
+            tdShibata.appendChild(inShibata);
+            tr.appendChild(tdShibata);
+
+            // Preço Nagumo
+            const tdNagumo = document.createElement('td');
+            tdNagumo.className = 'price-cell';
+            const inNagumo = document.createElement('input');
+            inNagumo.type = 'text';
+            inNagumo.inputMode = 'numeric';
+            inNagumo.value = (item.priceNagumo && item.priceNagumo !== 'R$ 0,00') ? item.priceNagumo : '';
+            if (!inNagumo.value) inNagumo.classList.add('default-price');
+            inNagumo.addEventListener('input', function() { formatPriceInput(this); applyPriceFormatting(tr); triggerDelayedSave(); });
+            tdNagumo.appendChild(inNagumo);
+            tr.appendChild(tdNagumo);
+
+            // Deletar
+            const tdDel = document.createElement('td');
+            const btnDel = document.createElement('button');
+            btnDel.className = 'action-btn';
+            btnDel.innerHTML = '<i class="fas fa-times"></i>';
+            btnDel.addEventListener('click', function() {
+                if (item.id) {
+                    const username = localStorage.getItem('currentUser');
+                    const pendingDeletes = JSON.parse(localStorage.getItem(`pendingDeletes_${username}`) || '[]');
+                    pendingDeletes.push(item.id);
+                    localStorage.setItem(`pendingDeletes_${username}`, JSON.stringify(pendingDeletes));
+                }
+                tr.remove();
+                saveList();
+            });
+            tdDel.appendChild(btnDel);
+            tr.appendChild(tdDel);
+
+            return tr;
+        }
+
+        function appendAddRow() {
+            const tr = document.createElement('tr');
+            tr.className = 'add-item-row';
+
+            tr.appendChild(document.createElement('td'));
+
+            const tdName = document.createElement('td');
+            const txt = document.createElement('textarea');
+            txt.className = 'item-name-input';
+            txt.placeholder = 'Adicionar novo item...';
+            txt.rows = 1;
+            txt.addEventListener('input', function() {
+                autoResizeTextarea(this);
+                showAutocomplete(this);
+            });
+            txt.addEventListener('focus', function() { currentActiveInput = this; });
+            txt.addEventListener('blur', () => setTimeout(hideAutocomplete, 200));
+            txt.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addNewItemFromRow(tr, txt.value);
+                }
+            });
+            tdName.appendChild(txt);
+            tr.appendChild(tdName);
+
+            const tdS = document.createElement('td'); tdS.className = 'price-cell';
+            const inS = document.createElement('input'); inS.type = 'text'; inS.disabled = true; inS.classList.add('default-price');
+            tdS.appendChild(inS); tr.appendChild(tdS);
+
+            const tdN = document.createElement('td'); tdN.className = 'price-cell';
+            const inN = document.createElement('input'); inN.type = 'text'; inN.disabled = true; inN.classList.add('default-price');
+            tdN.appendChild(inN); tr.appendChild(tdN);
+
+            const tdAdd = document.createElement('td');
+            const btnAdd = document.createElement('button');
+            btnAdd.className = 'action-btn add';
+            btnAdd.innerHTML = '<i class="fas fa-plus"></i>';
+            btnAdd.addEventListener('click', () => addNewItemFromRow(tr, txt.value));
+            tdAdd.appendChild(btnAdd);
+            tr.appendChild(tdAdd);
+
+            tableBody.appendChild(tr);
+        }
+
+        function addNewItemFromRow(row, name) {
+            if (!name.trim()) return;
+            const newItem = { id: Date.now(), name: name.trim(), priceShibata: '', priceNagumo: '', purchased: false };
+            const newRow = createRow(newItem);
+            tableBody.insertBefore(newRow, row);
+            row.querySelector('textarea').value = '';
+            row.querySelector('textarea').style.height = 'auto';
+            saveList();
+        }
+
+        function autoResizeTextarea(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+        }
+
+        // --- AUTOCOMPLETE ---
+        function showAutocomplete(input) {
+            const query = normalizeString(input.value.trim());
+            if (!query) { hideAutocomplete(); return; }
+
+            const filtered = itensList.filter(item => normalizeString(item.nome).includes(query)).slice(0, 5);
+            if (filtered.length === 0) { hideAutocomplete(); return; }
+
+            autocompleteSuggestions.innerHTML = '';
+            filtered.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'suggestion-item';
+                div.innerHTML = `<i class="fas fa-shopping-basket" style="color: var(--primary-color);"></i> <span>${item.nome}</span>`;
+                div.addEventListener('click', () => {
+                    input.value = item.nome;
+                    autoResizeTextarea(input);
+                    hideAutocomplete();
+                    const row = input.closest('tr');
+                    if (row.classList.contains('add-item-row')) {
+                        addNewItemFromRow(row, item.nome);
+                    } else {
+                        saveList();
+                    }
+                });
+                autocompleteSuggestions.appendChild(div);
+            });
+
+            const rect = input.getBoundingClientRect();
+            autocompleteSuggestions.style.top = `${rect.bottom + window.scrollY}px`;
+            autocompleteSuggestions.style.left = `${rect.left + window.scrollX}px`;
+            autocompleteSuggestions.style.width = `${rect.width}px`;
+            autocompleteSuggestions.style.display = 'block';
+        }
+
+        function hideAutocomplete() {
+            autocompleteSuggestions.style.display = 'none';
+        }
+
+        function clearList() {
+            if (confirm("Tem certeza que deseja apagar TODOS os itens da lista?")) {
+                const username = localStorage.getItem('currentUser');
+                if (username) {
+                    const localItems = getCurrentLocalItems();
+                    const allIds = localItems.map(i => i.id).filter(id => id !== null);
+                    localStorage.setItem(`pendingDeletes_${username}`, JSON.stringify(allIds));
+                }
+                tableBody.innerHTML = '';
+                appendAddRow();
+                saveList();
+            }
+        }
+
+        function loadList() {
+            const username = localStorage.getItem('currentUser');
+            if (!username) return;
+
+            const cached = localStorage.getItem(`shoppingList_${username}`);
+            const offline = localStorage.getItem(`offlineList_${username}`);
+
+            if (offline) {
+                redrawTable(JSON.parse(offline), true);
+            } else if (cached) {
+                redrawTable(JSON.parse(cached), true);
+            } else {
+                appendAddRow();
+            }
+        }
+
+        // --- IFRAMES WAKEUP ---
+        function wakeUpApp() {
+            const overlay = document.getElementById('iframe-overlay');
+            overlay.style.display = 'flex';
+            const iframe = document.getElementById('streamlit-app');
+            iframe.src = iframe.src;
+            setTimeout(() => overlay.style.display = 'none', 4000);
+        }
+
+        function wakeUpApp2() {
+            const overlay = document.getElementById('iframe-overlay-2');
+            overlay.style.display = 'flex';
+            const iframe = document.getElementById('streamlit-app-2');
+            iframe.src = iframe.src;
+            setTimeout(() => overlay.style.display = 'none', 4000);
+        }
+
+        // --- MONITOR DE REDE ---
+        window.addEventListener('online', () => { isOnline = true; saveList(); startPolling(); });
+        window.addEventListener('offline', () => { isOnline = false; setSyncStatus('offline'); stopPolling(); });
+
+        // --- INICIALIZAÇÃO ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            await carregarItens();
+
+            if (localStorage.getItem('authToken')) {
+                showApp();
+            } else {
+                showAuth();
+            }
+
+            const username = localStorage.getItem('currentUser');
+            let hasPending = false;
+            if (username) {
+                const pendingItems = localStorage.getItem(`offlineList_${username}`);
+                const pendingDeletes = localStorage.getItem(`pendingDeletes_${username}`);
+                if (pendingItems || (pendingDeletes && pendingDeletes !== '[]')) {
+                    hasPending = true;
+                }
+            }
+
+            if (!isOnline || hasPending) {
+                setSyncStatus('offline');
+            } else {
+                setSyncStatus('saved');
+            }
+        });
+
+        // Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('ServiceWorker registrado:', reg.scope))
+                    .catch(err => console.log('Falha ServiceWorker:', err));
+            });
         }
     </script>
 </body>
