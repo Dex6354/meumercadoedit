@@ -79,7 +79,6 @@
         .status-syncing { background-color: var(--yellow-sync-color) !important; }
         .status-error { background-color: var(--danger-color) !important; }
         .status-saved { background-color: var(--green-highlight) !important; }
-        .status-offline { background-color: #7986cb !important; }
     </style>
 </head>
 <body>
@@ -108,8 +107,8 @@
     </div>
 
     <script>
-        // SE O WORKER ESTIVER NOUTRO DOMÍNIO, ALTERE PARA O URL COMPLETO (Ex: 'https://seu-worker.workers.dev/api/shopping-list')
-        const WORKER_URL = '/api/shopping-list';
+        // SUBSTITUA ABAIXO COM A URL COMPLETA DO SEU WORKER CLOUDFLARE (.workers.dev)
+        const WORKER_URL = 'https://SEU-WORKER.workers.dev/api/shopping-list'; 
         let itensList = [];
 
         function getAuthHeaders() {
@@ -133,7 +132,7 @@
         async function carregarItens() {
             setSyncStatus('syncing');
             try {
-                const response = await fetch(WORKER_URL, { headers: getAuthHeaders() }); 
+                const response = await fetch(WORKER_URL, { method: 'GET', headers: getAuthHeaders() }); 
                 if (!response.ok) throw new Error(`Erro HTTP: ${response.status}`);
                 
                 itensList = await response.json();
@@ -150,7 +149,6 @@
             select.innerHTML = '<option value="">Selecione um item da lista suspensa...</option>';
             
             itensList.forEach(item => {
-                // Suporta tanto a propriedade 'nome' quanto 'name' do banco/KV
                 const nomeItem = item.nome || item.name || '';
                 if (nomeItem) {
                     const opt = document.createElement('option');
@@ -198,7 +196,6 @@
             const nomeBase = match ? match[1].trim() : nomeItemCompleto.trim();
             const novoNomeCompleto = novoPreco ? `${nomeBase} ${novoPreco}` : nomeBase;
 
-            // Atualiza a propriedade correta detectada
             if (itensList[itemIndex].nome !== undefined) {
                 itensList[itemIndex].nome = novoNomeCompleto;
             } else {
