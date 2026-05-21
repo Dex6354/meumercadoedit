@@ -459,6 +459,7 @@
                 usernameDisplay.innerHTML = `<i class="fas fa-user"></i> ${username}`;
             }
 
+            carregarItens();
             loadList();
             startPolling();
         }
@@ -585,7 +586,7 @@
 
         async function carregarItens() {
             try {
-                const response = await fetch(WORKER_URL); 
+                const response = await fetch(WORKER_URL, { headers: getAuthHeaders() }); 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -647,7 +648,7 @@
             try {
                 const response = await fetch(WORKER_URL, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAuthHeaders(),
                     body: JSON.stringify(itensList)
                 });
 
@@ -947,9 +948,9 @@
                 return;
             }
 
-            const normalizedInput = normalizeString(inputText);
+            const normalizeInput = normalizeString(inputText);
             const filteredItens = itensList.filter(item => 
-                normalizeString(item.nome).includes(normalizedInput)
+                normalizeString(item.nome).includes(normalizeInput)
             );
 
             if (filteredItens.length > 0) {
@@ -1234,8 +1235,6 @@
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
-            await carregarItens();
-
             if (localStorage.getItem('authToken')) {
                 showApp();
             } else {
