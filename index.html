@@ -167,7 +167,7 @@
         .section-header .clear-btn:hover { color: #ff7961; }
 
         /* --- BOTÕES --- */
-        .custom-btn { background-color: var(--primary-color); color: var(--bg-color); border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: bold; padding: 10px 15px; transition: background-color 0.3s; }
+        .custom-btn { background-color: var(--primary-color); color: var(--bg-color); border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: bold; padding: 10px 15px; transition: background-color 0.3s; width: 100%; }
         .custom-btn:hover { background-color: #ffd54f; }
         .custom-btn.secondary { background-color: var(--input-bg-color); color: var(--text-color); }
         .custom-btn.secondary:hover { background-color: #555; }
@@ -358,11 +358,9 @@
                     <div id="item-manager-content" class="collapsible-content">
                         <div class="manager-form">
                             <select id="manager-item-select" class="manager-select" onchange="carregarPrecosItemManager()">
-                                <option value="">Selecione um item da lista suspensa...</option>
+                                <option value="">Selecione um item da lista...</option>
                             </select>
-                            <div class="manager-row">
-                                <input type="text" id="manager-price-geral" class="auth-input" placeholder="Preço Geral (R$ 0,00)" onblur="formatCurrency(this)">
-                            </div>
+                            <input type="text" id="manager-price-geral" class="auth-input" placeholder="Preço Geral (R$ 0,00)" onblur="formatCurrency(this)">
                             <button class="custom-btn" onclick="atualizarPrecoFixo()">
                                 <i class="fas fa-save"></i> Salvar Preço Fixo
                             </button>
@@ -428,7 +426,7 @@
     <div id="autocomplete-suggestions"></div>
 
     <script>
-        const WORKER_URL = '/api/shopping-list';
+        const WORKER_URL = 'https://meumercado-api.9f3c7a5d2e6b4f8a1c0d9e7b3a2f6c5d8e1a4b7c9d0f3e6a5b2c1g3-onion.workers.dev';
 
         const authContainer = document.getElementById('auth-container');
         const appContainer = document.getElementById('app-container');
@@ -459,7 +457,6 @@
                 usernameDisplay.innerHTML = `<i class="fas fa-user"></i> ${username}`;
             }
 
-            carregarItens();
             loadList();
             startPolling();
         }
@@ -585,29 +582,29 @@
         let itensList = [];
 
         async function carregarItens() {
+            setSyncStatus('syncing');
             try {
-                const response = await fetch(WORKER_URL, { headers: getAuthHeaders() }); 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                const response = await fetch(WORKER_URL); 
+                if (!response.ok) throw new Error();
                 itensList = await response.json();
-                console.log(`Itens de Autocomplete carregados: ${itensList.length}`);
                 popularSelectItemManager();
+                setSyncStatus('saved');
             } catch (error) {
-                console.error('Falha ao carregar lista de itens da API:', error);
-                itensList = [];
+                console.error(error);
+                setSyncStatus('error');
             }
         }
 
         function popularSelectItemManager() {
             const select = document.getElementById('manager-item-select');
-            select.innerHTML = '<option value="">Selecione um item da lista suspensa...</option>';
-            
+            select.innerHTML = '<option value="">Selecione um item da lista...</option>';
             itensList.forEach(item => {
-                const opt = document.createElement('option');
-                opt.value = item.nome;
-                opt.textContent = item.nome;
-                select.appendChild(opt);
+                if (item.nome) {
+                    const opt = document.createElement('option');
+                    opt.value = item.nome;
+                    opt.textContent = item.nome;
+                    select.appendChild(opt);
+                }
             });
         }
 
@@ -635,9 +632,8 @@
             }
 
             setSyncStatus('syncing');
-
             const itemIndex = itensList.findIndex(i => i.nome === nomeItemCompleto);
-            if (itemIndex === -1) return;
+            if (itemIndex === -1) return setSyncStatus('error');
 
             const match = nomeItemCompleto.match(/(.*?)\s+(R\$\s*[\d,.]+)/i);
             const nomeBase = match ? match[1].trim() : nomeItemCompleto.trim();
@@ -648,20 +644,19 @@
             try {
                 const response = await fetch(WORKER_URL, {
                     method: 'PUT',
-                    headers: getAuthHeaders(),
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(itensList)
                 });
 
-                if (!response.ok) throw new Error('Erro ao salvar os novos preços.');
+                if (!response.ok) throw new Error();
 
                 setSyncStatus('saved');
-                alert(`Preço fixo de "${nomeBase}" atualizado com sucesso!`);
+                alert(`Preço de "${nomeBase}" atualizado com sucesso!`);
                 popularSelectItemManager();
                 document.getElementById('manager-price-geral').value = '';
             } catch (error) {
-                console.error(error);
                 setSyncStatus('error');
-                alert('Erro ao atualizar preços no servidor.');
+                alert('Erro ao salvar no servidor KV.');
             }
         }
 
@@ -948,9 +943,9 @@
                 return;
             }
 
-            const normalizeInput = normalizeString(inputText);
+            const normalizedInput = normalizeString(inputText);
             const filteredItens = itensList.filter(item => 
-                normalizeString(item.nome).includes(normalizeInput)
+                normalizeString(item.nome).includes(normalizedInput)
             );
 
             if (filteredItens.length > 0) {
@@ -1235,6 +1230,8 @@
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
+            await carregarItens();
+
             if (localStorage.getItem('authToken')) {
                 showApp();
             } else {
