@@ -321,6 +321,32 @@
             background-color: #555;
         }
 
+        /* --- LISTA DE ITENS (Tab 4) --- */
+        .item-tag {
+            background-color: var(--input-bg-color);
+            color: var(--text-color);
+            border: 1px solid #444;
+            border-radius: 20px;
+            padding: 8px 14px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            user-select: none;
+        }
+        .item-tag:hover {
+            background-color: var(--primary-color);
+            color: var(--bg-color);
+            border-color: var(--primary-color);
+        }
+        .item-tag.adicionado {
+            background-color: var(--green-highlight);
+            border-color: var(--green-highlight);
+            color: #fff;
+        }
+
         @media (min-width: 768px) { .shopping-list-table colgroup col:nth-child(2) { width: 450px; } }
         @media (min-width: 1024px) { .shopping-list-table colgroup col:nth-child(2) { width: 550px; } }
     </style>
@@ -460,9 +486,11 @@
                     </div>
 
                     <div id="tab-itens" class="tab-panel">
-                        <div class="iframe-container">
-                            <iframe src="https://meumercado.pages.dev/itens" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"></iframe>
+                        <div style="margin-bottom:12px;">
+                            <input type="text" id="itens-search" class="auth-input" placeholder="🔍 Buscar item..." oninput="filtrarItensTab(this.value)" style="margin-bottom:0;">
                         </div>
+                        <div id="itens-grid" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+                        <p id="itens-empty" style="color:var(--secondary-text-color);text-align:center;display:none;">Nenhum item encontrado.</p>
                     </div>
 
                 </div>
@@ -618,6 +646,50 @@
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
             btn.classList.add('active');
+            if (tabId === 'tab-itens') renderItensTab();
+        }
+
+        // --- LISTA DE ITENS (Tab 4) ---
+        function renderItensTab(filtro = '') {
+            const grid = document.getElementById('itens-grid');
+            const empty = document.getElementById('itens-empty');
+            if (!grid) return;
+
+            const normalizado = normalizeString(filtro);
+            const filtrados = itensList.filter(item =>
+                item.nome && normalizeString(item.nome).includes(normalizado)
+            );
+
+            grid.innerHTML = '';
+            if (filtrados.length === 0) {
+                empty.style.display = 'block';
+                return;
+            }
+            empty.style.display = 'none';
+
+            filtrados.forEach(item => {
+                const btn = document.createElement('button');
+                btn.className = 'item-tag';
+                btn.innerHTML = `<i class="fas fa-plus-circle"></i> ${item.nome}`;
+                btn.onclick = () => adicionarItemDaLista(item.nome, btn);
+                grid.appendChild(btn);
+            });
+        }
+
+        function filtrarItensTab(valor) {
+            renderItensTab(valor);
+        }
+
+        function adicionarItemDaLista(nome, btn) {
+            buildItemRow({ id: null, name: nome, priceShibata: 'R$ 0,00', priceNagumo: 'R$ 0,00', purchased: false }, true);
+            saveList();
+            // Feedback visual
+            btn.classList.add('adicionado');
+            btn.innerHTML = `<i class="fas fa-check"></i> ${nome}`;
+            setTimeout(() => {
+                btn.classList.remove('adicionado');
+                btn.innerHTML = `<i class="fas fa-plus-circle"></i> ${nome}`;
+            }, 1500);
         }
 
         // --- GERENCIAR ITENS (Tab 3) ---
