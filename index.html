@@ -322,29 +322,70 @@
         }
 
         /* --- LISTA DE ITENS (Tab 4) --- */
-        .item-tag {
+        #itens-search-input {
+            width: 100%;
+            padding: 12px 15px;
             background-color: var(--input-bg-color);
             color: var(--text-color);
             border: 1px solid #444;
-            border-radius: 20px;
-            padding: 8px 14px;
-            font-size: 0.875rem;
-            cursor: pointer;
-            transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            margin-bottom: 8px;
+        }
+        #itens-search-input::placeholder { color: var(--secondary-text-color); }
+        #itens-search-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.2);
+        }
+        #itens-shopping-list {
+            list-style-type: none;
+            padding: 0;
+            text-align: left;
+            margin-top: 12px;
+        }
+        #itens-shopping-list li {
+            background-color: var(--input-bg-color);
+            border-radius: 5px;
+            padding: 0.8rem 1rem;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+            color: var(--text-color);
             display: flex;
             align-items: center;
-            gap: 6px;
-            user-select: none;
+            justify-content: space-between;
+            transition: background-color 0.2s;
         }
-        .item-tag:hover {
-            background-color: var(--primary-color);
-            color: var(--bg-color);
-            border-color: var(--primary-color);
+        #itens-shopping-list li:hover { background-color: #575757; }
+        .itens-item-name { flex-grow: 1; padding: 0 10px; }
+        .itens-in-list-icon {
+            color: var(--green-highlight);
+            font-size: 1.2rem;
+            width: 20px;
+            text-align: center;
+            display: none;
         }
-        .item-tag.adicionado {
-            background-color: var(--green-highlight);
-            border-color: var(--green-highlight);
-            color: #fff;
+        .itens-add-btn {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            font-size: 1.2rem;
+            cursor: pointer;
+            width: 20px;
+            text-align: center;
+            padding: 0;
+            display: none;
+        }
+        .itens-add-btn:hover { color: #ffd54f; }
+        #itens-shopping-list li.in-list .itens-in-list-icon { display: block; }
+        #itens-shopping-list li:not(.in-list) .itens-add-btn { display: block; }
+        .itens-status {
+            font-style: italic;
+            color: var(--secondary-text-color);
+            height: 20px;
+            text-align: center;
+            margin-bottom: 1rem;
         }
 
         @media (min-width: 768px) { .shopping-list-table colgroup col:nth-child(2) { width: 450px; } }
@@ -486,11 +527,9 @@
                     </div>
 
                     <div id="tab-itens" class="tab-panel">
-                        <div style="margin-bottom:12px;">
-                            <input type="text" id="itens-search" class="auth-input" placeholder="🔍 Buscar item..." oninput="filtrarItensTab(this.value)" style="margin-bottom:0;">
-                        </div>
-                        <div id="itens-grid" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
-                        <p id="itens-empty" style="color:var(--secondary-text-color);text-align:center;display:none;">Nenhum item encontrado.</p>
+                        <input type="text" id="itens-search-input" placeholder="Pesquisar item...">
+                        <p class="itens-status" id="itens-status-message">Carregando...</p>
+                        <ul id="itens-shopping-list"></ul>
                     </div>
 
                 </div>
@@ -646,51 +685,74 @@
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
             btn.classList.add('active');
-            if (tabId === 'tab-itens') renderItensTab();
+            if (tabId === 'tab-itens') {
+                renderItensTab('');
+                const si = document.getElementById('itens-search-input');
+                if (si && !si._bound) {
+                    si.addEventListener('input', () => renderItensTab(si.value));
+                    si._bound = true;
+                }
+            }
         }
 
         // --- LISTA DE ITENS (Tab 4) ---
-        function renderItensTab(filtro = '') {
-            const grid = document.getElementById('itens-grid');
-            const empty = document.getElementById('itens-empty');
-            if (!grid) return;
+        function renderItensTab(filtro) {
+            const listElement = document.getElementById('itens-shopping-list');
+            const statusMessage = document.getElementById('itens-status-message');
+            if (!listElement) return;
 
-            const normalizado = normalizeString(filtro);
+            const searchTerm = filtro !== undefined ? filtro : (document.getElementById('itens-search-input')?.value || '');
+            const normalizado = normalizeString(searchTerm.trim());
+
             const filtrados = itensList.filter(item =>
                 item.nome && normalizeString(item.nome).includes(normalizado)
             );
 
-            grid.innerHTML = '';
+            // Nomes já na lista do usuário
+            const localItems = getCurrentLocalItems();
+            const nomesNaLista = new Set(localItems.map(i => normalizeString(i.name)));
+
+            listElement.innerHTML = '';
+
             if (filtrados.length === 0) {
-                empty.style.display = 'block';
+                statusMessage.textContent = normalizado ? 'Nenhum item encontrado na pesquisa.' : 'A lista de itens está vazia.';
+                statusMessage.style.display = 'block';
                 return;
             }
-            empty.style.display = 'none';
+            statusMessage.style.display = 'none';
 
             filtrados.forEach(item => {
-                const btn = document.createElement('button');
-                btn.className = 'item-tag';
-                btn.innerHTML = `<i class="fas fa-plus-circle"></i> ${item.nome}`;
-                btn.onclick = () => adicionarItemDaLista(item.nome, btn);
-                grid.appendChild(btn);
+                const isInList = nomesNaLista.has(normalizeString(item.nome));
+                const li = document.createElement('li');
+                li.className = isInList ? 'in-list' : '';
+                li.dataset.itemName = item.nome;
+                li.innerHTML = `
+                    <i class="fas fa-check-circle itens-in-list-icon"></i>
+                    <span class="itens-item-name">${item.nome}</span>
+                    <button class="itens-add-btn"><i class="fas fa-plus"></i></button>
+                `;
+                listElement.appendChild(li);
             });
         }
 
-        function filtrarItensTab(valor) {
-            renderItensTab(valor);
+        function adicionarItemDaLista(itemName, li) {
+            // Atualização otimista da UI
+            li.classList.add('in-list');
+
+            buildItemRow({ id: null, name: itemName, priceShibata: 'R$ 0,00', priceNagumo: 'R$ 0,00', purchased: false }, true);
+            saveList();
         }
 
-        function adicionarItemDaLista(nome, btn) {
-            buildItemRow({ id: null, name: nome, priceShibata: 'R$ 0,00', priceNagumo: 'R$ 0,00', purchased: false }, true);
-            saveList();
-            // Feedback visual
-            btn.classList.add('adicionado');
-            btn.innerHTML = `<i class="fas fa-check"></i> ${nome}`;
-            setTimeout(() => {
-                btn.classList.remove('adicionado');
-                btn.innerHTML = `<i class="fas fa-plus-circle"></i> ${nome}`;
-            }, 1500);
-        }
+        // Listener delegado para os botões "+" da lista de itens
+        document.addEventListener('click', (event) => {
+            const addBtn = event.target.closest('.itens-add-btn');
+            if (!addBtn) return;
+            const li = addBtn.closest('li');
+            if (!li || li.classList.contains('in-list')) return;
+            const itemName = li.dataset.itemName;
+            if (!itemName) return;
+            adicionarItemDaLista(itemName, li);
+        });
 
         // --- GERENCIAR ITENS (Tab 3) ---
         function popularSelectItemManager() {
