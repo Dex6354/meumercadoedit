@@ -205,13 +205,60 @@
         #iframe-overlay, #iframe-overlay-2 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); display: none; justify-content: center; align-items: center; flex-direction: column; gap: 15px; z-index: 5; color: var(--text-color); text-align: center; }
         .loader { border: 4px solid var(--input-bg-color); border-top: 4px solid var(--primary-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #comparator-section, #comparator-section-2, #item-manager-section { padding-top: 0; padding-bottom: 0; margin-bottom: 24px; }
-        .collapsible-header { cursor: pointer; padding: 20px 16px; display: flex; justify-content: space-between; align-items: center; }
-        .collapsible-header h2 { margin: 0; font-size: 1.5rem; color: var(--primary-color); }
-        .collapsible-header .fas.fa-chevron-down { transition: transform 0.3s ease; color: var(--secondary-text-color); }
-        .collapsible-header.active .fas.fa-chevron-down { transform: rotate(180deg); }
-        .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-out; padding: 0 16px; }
-        .collapsible-content.expanded { max-height: 100vh; padding-bottom: 20px; }
+        /* --- ABAS (TABS) --- */
+        .tabs-wrapper {
+            background-color: var(--card-color);
+            border-radius: var(--border-radius);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+        .tabs-nav {
+            display: flex;
+            background-color: #1a1a1a;
+            border-bottom: 2px solid var(--input-bg-color);
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        .tabs-nav::-webkit-scrollbar { display: none; }
+        .tab-btn {
+            flex: 1;
+            padding: 13px 16px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            color: var(--secondary-text-color);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: color 0.2s, border-color 0.2s, background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .tab-btn:hover {
+            color: var(--text-color);
+            background-color: #252525;
+        }
+        .tab-btn.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            background-color: var(--card-color);
+        }
+        .tab-btn i { font-size: 0.85rem; }
+        .tab-panel {
+            display: none;
+            padding: 20px 16px;
+        }
+        .tab-panel.active {
+            display: block;
+        }
+
+        /* --- GERENCIAR ITENS (Tab 3) --- */
+        .manager-form { display: flex; flex-direction: column; gap: 12px; }
+        .manager-select { width: 100%; padding: 12px; background-color: var(--input-bg-color); border: 1px solid #444; border-radius: 8px; color: var(--text-color); font-size: 1rem; }
         .footer { text-align: center; padding: 16px; color: var(--secondary-text-color); font-size: 0.875rem; background-color: #282828; margin-top: auto; width: 100%; }
 
         #sync-status-indicator { 
@@ -273,12 +320,6 @@
         .suggestion-item:hover {
             background-color: #555;
         }
-
-        /* --- Estilos do Gerenciador de Itens --- */
-        .manager-form { display: flex; flex-direction: column; gap: 12px; }
-        .manager-select { width: 100%; padding: 12px; background-color: var(--input-bg-color); border: 1px solid #444; border-radius: 8px; color: var(--text-color); font-size: 1rem; }
-        .manager-row { display: flex; gap: 10px; }
-        .manager-row .auth-input { margin-bottom: 0; }
 
         @media (min-width: 768px) { .shopping-list-table colgroup col:nth-child(2) { width: 450px; } }
         @media (min-width: 1024px) { .shopping-list-table colgroup col:nth-child(2) { width: 550px; } }
@@ -354,33 +395,20 @@
                     </div>
                 </div>
 
-                <div class="section" id="item-manager-section">
-                    <div class="section-header collapsible-header" onclick="toggleItemManager()">
-                        <h2>Gerenciar Itens (Preço Fixo)</h2>
-                        <i class="fas fa-chevron-down"></i>
+                <div class="tabs-wrapper">
+                    <div class="tabs-nav">
+                        <button class="tab-btn active" onclick="switchTab('tab-comparador', this)">
+                            <i class="fas fa-chart-bar"></i> Comparador de Preços
+                        </button>
+                        <button class="tab-btn" onclick="switchTab('tab-busca', this)">
+                            <i class="fas fa-search-dollar"></i> Busca Preço Auto
+                        </button>
+                        <button class="tab-btn" onclick="switchTab('tab-gerenciar', this)">
+                            <i class="fas fa-tags"></i> Gerenciar Itens
+                        </button>
                     </div>
-                    <div id="item-manager-content" class="collapsible-content">
-                        <div class="manager-form">
-                            <select id="manager-item-select" class="manager-select" onchange="carregarPrecosItemManager()">
-                                <option value="">Selecione um item da lista suspensa...</option>
-                            </select>
-                            <div class="manager-row">
-                                <input type="text" id="manager-price-shibata" class="auth-input" placeholder="Preço Shibata (R$ 0,00)" onblur="formatCurrency(this)">
-                                <input type="text" id="manager-price-nagumo" class="auth-input" placeholder="Preço Nagumo (R$ 0,00)" onblur="formatCurrency(this)">
-                            </div>
-                            <button class="custom-btn" onclick="atualizarPrecoFixo()">
-                                <i class="fas fa-save"></i> Salvar Preço Fixo
-                            </button>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="section" id="comparator-section">
-                    <div class="section-header collapsible-header" onclick="toggleComparator()">
-                        <h2>Comparador de Preços</h2>
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div id="comparator-content" class="collapsible-content">
+                    <div id="tab-comparador" class="tab-panel active">
                         <div id="iframe-wrapper" class="iframe-container">
                             <div id="iframe-overlay">
                                 <div class="loader"></div>
@@ -397,14 +425,8 @@
                             </a>
                         </div>
                     </div>
-                </div>
 
-                <div class="section" id="comparator-section-2">
-                    <div class="section-header collapsible-header" onclick="toggleComparator2()">
-                        <h2>Busca Preço Auto</h2>
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div id="comparator-content-2" class="collapsible-content">
+                    <div id="tab-busca" class="tab-panel">
                         <div id="iframe-wrapper-2" class="iframe-container">
                             <div id="iframe-overlay-2">
                                 <div class="loader"></div>
@@ -419,6 +441,18 @@
                             <a href="https://buscaprecoauto.streamlit.app/" target="_blank" rel="noopener noreferrer" class="custom-btn secondary" style="flex-grow: 1; text-align: center; text-decoration: none; line-height: 1.8;">
                                 <i class="fas fa-external-link-alt"></i> Abrir em Nova Guia
                             </a>
+                        </div>
+                    </div>
+
+                    <div id="tab-gerenciar" class="tab-panel">
+                        <div class="manager-form">
+                            <select id="manager-item-select" class="manager-select" onchange="carregarPrecosItemManager()">
+                                <option value="">Selecione um item da lista...</option>
+                            </select>
+                            <input type="text" id="manager-price-geral" class="auth-input" placeholder="Preço Geral (R$ 0,00)" onblur="formatCurrencyManager(this)">
+                            <button class="custom-btn" onclick="atualizarPrecoFixo()">
+                                <i class="fas fa-save"></i> Salvar Preço Fixo
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -566,19 +600,82 @@
         function closeNav() { document.getElementById("side-menu").classList.remove('open'); document.getElementById("page-overlay").classList.remove('show'); }
         document.addEventListener('keydown', (event) => { if (event.key === "Escape") closeNav(); });
 
-        function toggleComparator() {
-            document.querySelector('#comparator-section .collapsible-header').classList.toggle('active');
-            document.getElementById('comparator-content').classList.toggle('expanded');
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
         }
 
-        function toggleComparator2() {
-            document.querySelector('#comparator-section-2 .collapsible-header').classList.toggle('active');
-            document.getElementById('comparator-content-2').classList.toggle('expanded');
+        // --- GERENCIAR ITENS (Tab 3) ---
+        function popularSelectItemManager() {
+            const select = document.getElementById('manager-item-select');
+            if (!select) return;
+            select.innerHTML = '<option value="">Selecione um item da lista...</option>';
+            itensList.forEach(item => {
+                if (item.nome) {
+                    const opt = document.createElement('option');
+                    opt.value = item.nome;
+                    opt.textContent = item.nome;
+                    select.appendChild(opt);
+                }
+            });
         }
 
-        function toggleItemManager() {
-            document.querySelector('#item-manager-section .collapsible-header').classList.toggle('active');
-            document.getElementById('item-manager-content').classList.toggle('expanded');
+        function carregarPrecosItemManager() {
+            const select = document.getElementById('manager-item-select');
+            const precoInput = document.getElementById('manager-price-geral');
+            const itemSelecionado = itensList.find(item => item.nome === select.value);
+            if (itemSelecionado) {
+                const match = itemSelecionado.nome.match(/(.*?)\s+(R\$\s*[\d,.]+)/i);
+                precoInput.value = match ? match[2].trim() : '';
+            } else {
+                precoInput.value = '';
+            }
+        }
+
+        async function atualizarPrecoFixo() {
+            const select = document.getElementById('manager-item-select');
+            const nomeItemCompleto = select.value;
+            const novoPreco = document.getElementById('manager-price-geral').value.trim();
+
+            if (!nomeItemCompleto) {
+                alert('Por favor, selecione um item primeiro.');
+                return;
+            }
+
+            const itemIndex = itensList.findIndex(i => i.nome === nomeItemCompleto);
+            if (itemIndex === -1) return;
+
+            const match = nomeItemCompleto.match(/(.*?)\s+(R\$\s*[\d,.]+)/i);
+            const nomeBase = match ? match[1].trim() : nomeItemCompleto.trim();
+            const novoNomeCompleto = novoPreco ? `${nomeBase} ${novoPreco}` : nomeBase;
+
+            itensList[itemIndex].nome = novoNomeCompleto;
+
+            try {
+                const response = await fetch(WORKER_URL, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(itensList)
+                });
+                if (!response.ok) throw new Error();
+                alert(`Preço de "${nomeBase}" atualizado com sucesso!`);
+                popularSelectItemManager();
+                document.getElementById('manager-price-geral').value = '';
+            } catch (error) {
+                alert('Erro ao salvar no servidor KV.');
+            }
+        }
+
+        function formatCurrencyManager(input) {
+            const value = input.value.trim();
+            const number = parseFloat(value.replace('R$', '').trim().replace('.', '').replace(',', '.'));
+            if (isNaN(number) || number === 0) {
+                input.value = '';
+            } else {
+                input.value = number.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            }
         }
 
         // --- Variáveis de Sincronização e Estado ---
@@ -598,87 +695,19 @@
                 // ALTERADO: Agora busca do endpoint da API (Cloudflare KV)
                 const response = await fetch(WORKER_URL); 
                 if (!response.ok) {
+                    // Se a rede falhar E não houver cache (primeiro acesso offline), 
+                    // a promise pode ser rejeitada ou o status ser 503 (offline).
+                    // O SW deve retornar a versão em cache. Se chegou aqui, 
+                    // significa que falhou na rede E o SW não tinha cache.
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 itensList = await response.json();
                 console.log(`Itens de Autocomplete carregados: ${itensList.length}`);
-                
-                // Popula o select do gerenciador de itens fixos
                 popularSelectItemManager();
             } catch (error) {
                 console.error('Falha ao carregar lista de itens da API (Pode ser o primeiro acesso offline):', error);
+                // Fallback to empty list
                 itensList = [];
-            }
-        }
-
-        function popularSelectItemManager() {
-            const select = document.getElementById('manager-item-select');
-            // Reseta mantendo apenas a primeira opção
-            select.innerHTML = '<option value="">Selecione um item da lista suspensa...</option>';
-            
-            itensList.forEach(item => {
-                const opt = document.createElement('option');
-                opt.value = item.nome;
-                opt.textContent = item.nome;
-                select.appendChild(opt);
-            });
-        }
-
-        function carregarPrecosItemManager() {
-            const select = document.getElementById('manager-item-select');
-            const shibataInput = document.getElementById('manager-price-shibata');
-            const nagumoInput = document.getElementById('manager-price-nagumo');
-            
-            const itemSelecionado = itensList.find(item => item.nome === select.value);
-            
-            if (itemSelecionado) {
-                shibataInput.value = itemSelecionado.priceShibata || '';
-                nagumoInput.value = itemSelecionado.priceNagumo || '';
-            } else {
-                shibataInput.value = '';
-                nagumoInput.value = '';
-            }
-        }
-
-        async function atualizarPrecoFixo() {
-            const select = document.getElementById('manager-item-select');
-            const nomeItem = select.value;
-            const priceShibata = document.getElementById('manager-price-shibata').value.trim() || 'R$ 0,00';
-            const priceNagumo = document.getElementById('manager-price-nagumo').value.trim() || 'R$ 0,00';
-
-            if (!nomeItem) {
-                alert('Por favor, selecione um item primeiro.');
-                return;
-            }
-
-            setSyncStatus('syncing');
-
-            try {
-                const response = await fetch(WORKER_URL, {
-                    method: 'PUT',
-                    headers: getAuthHeaders(),
-                    body: JSON.stringify({
-                        nome: nomeItem,
-                        priceShibata: priceShibata,
-                        priceNagumo: priceNagumo
-                    })
-                });
-
-                if (!response.ok) throw new Error('Erro ao salvar os novos preços.');
-
-                // Atualiza localmente a lista na memória da aplicação
-                const itemIndex = itensList.findIndex(i => i.nome === nomeItem);
-                if (itemIndex !== -1) {
-                    itensList[itemIndex].priceShibata = priceShibata;
-                    itensList[itemIndex].priceNagumo = priceNagumo;
-                }
-
-                setSyncStatus('saved');
-                alert(`Preços fixos de "${nomeItem}" atualizados com sucesso!`);
-            } catch (error) {
-                console.error(error);
-                setSyncStatus('error');
-                alert('Erro ao atualizar preços no servidor.');
             }
         }
 
@@ -713,9 +742,14 @@
         async function pollForChanges() {
             const activeEl = document.activeElement;
 
+            // Pula o polling se:
+            // 1. Está offline
+            // 2. A aba está oculta
+            // 3. Uma sincronização (saveList) já está em andamento (CRUCIAL)
+            // 4. O usuário está digitando ativamente na tabela
             if (!isOnline || 
                 document.hidden || 
-                syncState === 'syncing' || 
+                syncState === 'syncing' || // <-- CORREÇÃO DA RACE CONDITION (Preço sumindo)
                 (activeEl && ['INPUT', 'TEXTAREA'].includes(activeEl.tagName) && tableBody.contains(activeEl))) 
             {
                 return;
@@ -730,11 +764,13 @@
                 const remoteItems = await response.json();
                 const localItems = getCurrentLocalItems();
 
+                // Compara a lista remota com a local. Se forem diferentes, atualiza a tela.
+                // Esta comparação agora inclui IDs, então é mais robusta.
                 if (JSON.stringify(remoteItems) !== JSON.stringify(localItems)) {
-                    redrawTable(remoteItems, false); 
+                    redrawTable(remoteItems, false); // Redesenha a tabela sem focar no campo de novo item
                 }
             } catch (error) {
-                // Falha silenciosa
+                // Falha silenciosa para não poluir o console com erros de rede
             }
         }
 
@@ -752,6 +788,7 @@
                 const name = row.cells[1].querySelector('textarea').value.trim();
                 if (name) {
                     items.push({
+                        // ATUALIZADO: Inclui o ID do item
                         id: row.dataset.id ? parseInt(row.dataset.id) : null,
                         name: name,
                         priceShibata: row.cells[2].querySelector('input').value || 'R$ 0,00',
@@ -769,15 +806,20 @@
             const username = localStorage.getItem('currentUser');
             if (!username) return;
 
+            // ATUALIZADO: Busca exclusões pendentes
             const pendingDeletes = JSON.parse(localStorage.getItem(`pendingDeletes_${username}`) || '[]');
 
             if (!isOnline) {
                 setSyncStatus('offline');
                 console.log("Offline: Salvando alterações localmente.");
+                // Salva os itens modificados
                 localStorage.setItem(`offlineList_${username}`, JSON.stringify(items));
+                // As exclusões pendentes já estão salvas no localStorage, então não faz mais nada
                 return;
             }
 
+            // CORREÇÃO: Define 'syncing' aqui, *antes* do await,
+            // para que o pollForChanges pare imediatamente.
             setSyncStatus('syncing'); 
             await saveListOnline(items, pendingDeletes);
         }
@@ -786,28 +828,46 @@
             const username = localStorage.getItem('currentUser');
             if (!username) return;
 
+            // 'syncing' já foi definido em saveList()
+            // setSyncStatus('syncing'); 
             try {
                 const response = await fetch('/api/list', {
                     method: 'POST',
                     headers: getAuthHeaders(),
+                    // ATUALIZADO: Envia um objeto com 'items' e 'deletes'
                     body: JSON.stringify({ items: items, deletes: deletes })
                 });
                 if (response.status === 401) return handleLogout();
                 if (!response.ok) throw new Error('Falha ao salvar no servidor.');
 
+                // ATUALIZADO: O servidor agora retorna a lista mesclada e autoritativa
                 const mergedItems = await response.json();
+
                 setSyncStatus('saved');
 
+                // Salva a lista autoritativa (com novos IDs) no cache principal
                 localStorage.setItem(`shoppingList_${username}`, JSON.stringify(mergedItems));
+
+                // Limpa as pendências offline (itens e deletes) APÓS o sucesso
                 localStorage.removeItem(`offlineList_${username}`);
                 localStorage.removeItem(`pendingDeletes_${username}`);
 
+                // ATUALIZADO: Redesenha a tabela com a lista do servidor
+                // Isso é crucial para que os novos itens recebam seus IDs corretos no DOM
+
+                // CORREÇÃO: Não redesenha a tabela se o usuário estiver
+                // ativamente digitando em um campo, para evitar perda de dados/foco.
                 const activeEl = document.activeElement;
                 const isTypingInTable = activeEl && ['INPUT', 'TEXTAREA'].includes(activeEl.tagName) && tableBody.contains(activeEl);
 
                 if (!isTypingInTable) {
+                    // Passa 'false' para não roubar o foco para o campo "novo item"
                     redrawTable(mergedItems, false); 
                 } else {
+                    // O usuário está digitando. Não redesenhe agora.
+                    // A lista em cache foi atualizada, o próximo
+                    // 'pollForChanges' (quando o usuário parar de digitar) 
+                    // vai sincronizar a UI.
                     console.log("Usuário digitando, adiando redesenho da UI.");
                 }
 
@@ -817,13 +877,16 @@
             }
         }
 
+        // --- LÓGICA DE SINCRONIZAÇÃO DE ALTERAÇÕES OFFLINE (CORRIGIDO) ---
         async function syncOfflineChanges() {
             const username = localStorage.getItem('currentUser');
             if (!username) return;
 
             const pendingItemsJSON = localStorage.getItem(`offlineList_${username}`);
+            // ATUALIZADO: Carrega também as exclusões pendentes
             const pendingDeletes = JSON.parse(localStorage.getItem(`pendingDeletes_${username}`) || '[]');
 
+            // Se não há itens pendentes E não há exclusões pendentes, não faz nada
             if (!pendingItemsJSON && pendingDeletes.length === 0) {
                 console.log("Nenhuma alteração offline para sincronizar.");
                 return;
@@ -832,12 +895,19 @@
             console.log("Conectado. Sincronizando alterações pendentes...");
 
             try {
+                // Se 'pendingItemsJSON' existir, usa ele (é a fonte da verdade offline)
+                // Se não, usa a lista do cache (mas ainda pode haver 'pendingDeletes' para enviar)
                 const localOfflineItems = pendingItemsJSON
                     ? JSON.parse(pendingItemsJSON)
                     : JSON.parse(localStorage.getItem(`shoppingList_${username}`) || '[]');
 
+                // ATUALIZADO: Envia itens e exclusões pendentes
+
+                // CORREÇÃO: Define 'syncing' aqui, *antes* do await
                 setSyncStatus('syncing');
                 await saveListOnline(localOfflineItems, pendingDeletes);
+
+                // O 'redrawTable' agora é chamado DENTRO de 'saveListOnline'
 
             } catch (error) {
                 console.error("Falha ao sincronizar as alterações offline:", error);
@@ -851,6 +921,7 @@
 
             const offlineKey = `offlineList_${username}`;
             const cacheKey = `shoppingList_${username}`;
+            // ATUALIZADO: Carrega também as exclusões pendentes para definir o status
             const pendingDeletes = JSON.parse(localStorage.getItem(`pendingDeletes_${username}`) || '[]');
             const pendingOfflineItems = JSON.parse(localStorage.getItem(offlineKey));
 
@@ -861,18 +932,21 @@
                 return;
             }
 
+            // Se não houver itens pendentes, mas houver exclusões pendentes, marca como offline
             if (pendingDeletes.length > 0) {
                 setSyncStatus('offline');
             }
 
             if (!isOnline) {
                 console.log("Offline. Carregando lista do cache.");
+                // Se já não estiver 'offline' por causa de 'pendingDeletes'
                 if (syncState !== 'offline') setSyncStatus('offline');
                 const cachedItems = JSON.parse(localStorage.getItem(cacheKey) || '[]');
                 redrawTable(cachedItems);
                 return;
             }
 
+            // Se não houver pendências, tenta sincronizar
             if (syncState !== 'offline') setSyncStatus('syncing');
             try {
                 const response = await fetch('/api/list', { headers: getAuthHeaders() });
@@ -882,6 +956,7 @@
                 const remoteItems = await response.json();
                 localStorage.setItem(cacheKey, JSON.stringify(remoteItems));
                 redrawTable(remoteItems, true);
+                // Só muda para 'saved' se não houver pendências offline
                 if (syncState !== 'offline') setSyncStatus('saved');
 
             } catch (error) {
@@ -912,6 +987,7 @@
                 }
             }
 
+            // CORREÇÃO: SÓ chama debouncedSave se NÃO for um campo da "add-item-row"
             const row = target.closest('tr');
             if (row && !row.classList.contains('add-item-row') && ['textarea', 'input'].includes(target.tagName.toLowerCase())) {
                 setSyncStatus('syncing');
@@ -929,25 +1005,30 @@
                     }
                 }, 1);
             }
+            // Define o currentActiveInput e chama o autocomplete para QUALQUER campo de nome de item.
             if (target.tagName.toLowerCase() === 'textarea' && target.classList.contains('item-name-input')) { 
                 currentActiveInput = target; 
                 handleAutocompleteInput(event); 
             } else if (target.tagName.toLowerCase() === 'textarea') {
+                 // Para outros textareas (apenas por segurança), limpa o autocomplete
                  closeAutocomplete();
             }
         }, true);
 
         tableBody.addEventListener('blur', (event) => {
             const target = event.target;
+            // CORREÇÃO: Pega a linha do evento
             const row = target.closest('tr'); 
 
+            // CORREÇÃO: SÓ formata/salva se for um campo de preço e NÃO for da "add-item-row"
             if (target.tagName.toLowerCase() === 'input' && target.type === 'text' && row && !row.classList.contains('add-item-row')) {
                 formatCurrency(event.target);
                 comparePrices(event.target);
-                setSyncStatus('syncing'); 
+                setSyncStatus('syncing'); // Define 'syncing' no blur
                 debouncedSave();
             }
 
+            // Lógica do autocomplete (não muda)
             if (event.target.tagName.toLowerCase() === 'textarea' && event.target.classList.contains('item-name-input')) {
                 setTimeout(() => {
                     if (!autocompleteSuggestions.matches(':hover')) {
@@ -965,7 +1046,8 @@
                 const rect = currentActiveInput.getBoundingClientRect();
                 autocompleteSuggestions.style.top = `${rect.bottom + window.scrollY}px`;
                 autocompleteSuggestions.style.left = `${rect.left + window.scrollX}px`;
-                autocompleteSuggestions.style.width = `${rect.width + 16}px`; 
+                // Garante que a largura seja igual à do campo de texto
+                autocompleteSuggestions.style.width = `${rect.width + 16}px`; // Adiciona padding horizontal
             }
         }
         window.addEventListener('scroll', updateAutocompletePosition, true);
@@ -985,8 +1067,10 @@
                 return;
             }
 
+            // NOVO: Normaliza o texto de entrada para comparação sem acentos
             const normalizedInput = normalizeString(inputText);
 
+            // NOVO: Filtra usando a string normalizada
             const filteredItens = itensList.filter(item => 
                 normalizeString(item.nome).includes(normalizedInput)
             );
@@ -994,7 +1078,7 @@
             if (filteredItens.length > 0) {
                 const suggestionsHTML = filteredItens
                     .map(item => `<div class="suggestion-item" data-name="${item.nome.replace(/"/g, '&quot;')}"><span>${item.nome}</span></div>`)
-                    .slice(0, 10) 
+                    .slice(0, 10) // Limitar a 10 sugestões
                     .join('');
                 autocompleteSuggestions.innerHTML = suggestionsHTML;
                 autocompleteSuggestions.style.display = 'block';
@@ -1008,28 +1092,26 @@
         autocompleteSuggestions.addEventListener('mousedown', (event) => {
             const suggestionItem = event.target.closest('.suggestion-item');
             if (suggestionItem && currentActiveInput) {
-                event.preventDefault(); 
+                event.preventDefault(); // Impede que o input perca o foco
                 const nome = suggestionItem.dataset.name;
                 currentActiveInput.value = nome;
 
                 closeAutocomplete();
+
+                // Disparar manualmente a função de redimensionar
                 autoResizeTextarea(currentActiveInput);
 
+                // Se for o campo de NOVO item, comita para adicionar. Se for EDICÃO, apenas salva.
                 if (currentActiveInput.id === 'newItemName') {
-                    // SE for um novo item, tenta buscar o preço fixo dele antes de injetar
-                    const fixo = itensList.find(i => i.nome === nome);
-                    const row = currentActiveInput.closest('tr');
-                    if (fixo) {
-                        row.cells[2].querySelector('input').value = fixo.priceShibata || '';
-                        row.cells[3].querySelector('input').value = fixo.priceNagumo || '';
-                    }
                     commitItem(); 
                 } else {
+                    // Item existente: apenas salva a lista atualizada
                     setSyncStatus('syncing');
                     debouncedSave();
                 }
             }
         });
+        // --- Fim das Funções do Autocomplete ---
 
 
         function createAddItemRow(shouldFocus = false) {
@@ -1045,6 +1127,7 @@
             `;
             const newItemInput = document.getElementById('newItemName');
             newItemInput.addEventListener('keydown', (event) => {
+                // Apenas comitar/mover se o autocomplete não estiver aberto e a tecla for Enter
                 if (event.key === 'Enter' && !event.shiftKey && autocompleteSuggestions.style.display !== 'block') {
                     event.preventDefault();
                     commitItem();
@@ -1061,14 +1144,15 @@
                 return;
             }
 
-            closeAutocomplete(); 
+            closeAutocomplete(); // Garante que deseja fechar ao comitar
 
             const row = itemNameInput.closest('tr');
             const priceShibata = row.cells[2].querySelector('input').value || 'R$ 0,00';
             const priceNagumo = row.cells[3].querySelector('input').value || 'R$ 0,00';
 
+            // ATUALIZADO: O novo item não tem 'id'
             buildItemRow({ 
-                id: null, 
+                id: null, // Novo item
                 name: itemName, 
                 priceShibata: priceShibata, 
                 priceNagumo: priceNagumo, 
@@ -1076,13 +1160,14 @@
             }, true); 
 
             createAddItemRow(true);
-            saveList(); 
+            saveList(); // Não é debounced, chama saveList() imediatamente
         }
 
         function buildItemRow(itemData, isNew = false) {
             const newRow = tableBody.insertRow(isNew ? 0 : tableBody.rows.length);
             if (itemData.purchased) newRow.classList.add('purchased');
 
+            // ATUALIZADO: Armazena o ID no dataset da linha
             newRow.dataset.id = itemData.id || '';
 
             const getPriceInputHTML = (price) => {
@@ -1104,6 +1189,7 @@
         function redrawTable(items, shouldFocusNewItem = true) {
             tableBody.innerHTML = '';
             if (items && items.length > 0) {
+                // ATUALIZADO: Os itens são desenhados na ordem recebida (que é 'id DESC' do servidor)
                 items.forEach(item => buildItemRow(item, false));
                 sortAndGroup();
             }
@@ -1113,20 +1199,21 @@
         function removeItem(button) {
             if (confirm('Tem certeza de que deseja remover este item?')) {
                 const row = button.closest('tr');
-                const id = row.dataset.id; 
+                const id = row.dataset.id; // Pega o ID do item
                 const username = localStorage.getItem('currentUser');
 
+                // ATUALIZADO: Adiciona o ID à lista de 'pendingDeletes' se ele existir
                 if (id && username) {
                     const key = `pendingDeletes_${username}`;
                     const pendingDeletes = JSON.parse(localStorage.getItem(key) || '[]');
-                    if (!pendingDeletes.includes(parseInt(id))) { 
+                    if (!pendingDeletes.includes(parseInt(id))) { // Evita duplicatas
                         pendingDeletes.push(parseInt(id));
                         localStorage.setItem(key, JSON.stringify(pendingDeletes));
                     }
                 }
 
-                row.remove(); 
-                saveList(); 
+                row.remove(); // Remove do DOM
+                saveList(); // Dispara o save (que agora enviará a exclusão)
             }
         }
 
@@ -1143,16 +1230,18 @@
                 const allRows = Array.from(tableBody.querySelectorAll('tr:not(.add-item-row)'));
                 const idsToDelete = [];
 
+                // ATUALIZADO: Coleta todos os IDs para exclusão
                 allRows.forEach(row => {
                     const id = row.dataset.id;
                     if (id) {
                         idsToDelete.push(parseInt(id));
                     }
-                    row.remove(); 
+                    row.remove(); // Remove do DOM
                 });
 
                 if (idsToDelete.length > 0) {
                     const key = `pendingDeletes_${username}`;
+                    // Mescla com quaisquer exclusões já pendentes
                     const pendingDeletes = JSON.parse(localStorage.getItem(key) || '[]');
                     idsToDelete.forEach(id => {
                         if (!pendingDeletes.includes(id)) {
@@ -1162,7 +1251,7 @@
                     localStorage.setItem(key, JSON.stringify(pendingDeletes));
                 }
 
-                saveList(); 
+                saveList(); // Dispara o save (lista de itens vazia, lista de deletes cheia)
                 createAddItemRow(true); 
             }
         }
@@ -1170,13 +1259,15 @@
         // --- Eventos de Conexão ---
         window.addEventListener('online', async () => {
             isOnline = true;
+            // ATUALIZADO: Sincroniza primeiro as mudanças offline
             await syncOfflineChanges(); 
+            // Em seguida, carrega a lista (que será a mesclada se a sincronização ocorrer)
             await loadList(); 
-            startPolling(); 
+            startPolling(); // Reinicia o polling ao ficar online
         });
         window.addEventListener('offline', () => {
             isOnline = false;
-            stopPolling(); 
+            stopPolling(); // Para o polling ao ficar offline
             setSyncStatus('offline');
         });
 
@@ -1198,7 +1289,6 @@
             return parseFloat(value.replace('R$', '').trim().replace('.', '').replace(',', '.'));
         }
 
-        // Modificado ligeiramente para aceitar inputs que não estão na tabela principal
         function comparePrices(input) {
             const row = input.closest('tr');
             if (!row || row.classList.contains('add-item-row')) return;
@@ -1232,6 +1322,7 @@
                 else nagumo.push(row);
             });
 
+            // O agrupamento (unpriced -> shibata -> equal -> nagumo) é mantido, garantindo a ordenação primária por status de preço.
             [...unpriced, ...shibata, ...equal, ...nagumo].forEach(row => tableBody.appendChild(row));
         }
 
@@ -1287,7 +1378,7 @@
                 showAuth();
             }
             setupVirtualKeyboardListener();
-
+            // ATUALIZADO: Verifica pendências para definir o status inicial
             const username = localStorage.getItem('currentUser');
             let hasPending = false;
             if (username) {
@@ -1305,6 +1396,7 @@
             }
         });
 
+        // Service Worker Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js')
