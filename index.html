@@ -448,6 +448,74 @@
             margin-bottom: 1rem;
         }
 
+
+        /* --- LISTA DE ITENS: top bar, form inline, botões --- */
+        .itens-top-bar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .itens-top-bar #itens-search-input {
+            flex-grow: 1;
+            margin-bottom: 0;
+        }
+        .itens-add-toggle-btn {
+            flex-shrink: 0;
+            padding: 10px 14px;
+            font-size: 1rem;
+        }
+        #itens-form {
+            background-color: var(--input-bg-color);
+            border-radius: var(--border-radius);
+            padding: 14px;
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .itens-nome-wrapper {
+            position: relative;
+        }
+        .itens-nome-wrapper .auth-input {
+            margin-bottom: 0;
+            padding-right: 36px;
+        }
+        .itens-clear-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--secondary-text-color);
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 2px;
+            line-height: 1;
+            display: none;
+        }
+        .itens-clear-btn:hover { color: var(--text-color); }
+        .itens-item-actions {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .itens-action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.05rem;
+            padding: 3px 5px;
+            border-radius: 4px;
+            transition: color 0.2s;
+        }
+        .itens-edit-btn { color: var(--primary-color); }
+        .itens-edit-btn:hover { color: #ffd54f; }
+        .itens-delete-btn { color: var(--danger-color); }
+        .itens-delete-btn:hover { color: #ff7961; }
+        #itens-shopping-list li .itens-item-name { flex-grow: 1; padding: 0 8px; }
         @media (min-width: 768px) { .shopping-list-table colgroup col:nth-child(2) { width: 450px; } }
         @media (min-width: 1024px) { .shopping-list-table colgroup col:nth-child(2) { width: 550px; } }
     </style>
@@ -533,9 +601,6 @@
                         <button class="tab-btn" onclick="switchTab('tab-busca', this)">
                             <i class="fas fa-search-dollar"></i> Busca Preço Auto
                         </button>
-                        <button class="tab-btn" onclick="switchTab('tab-gerenciar', this)">
-                            <i class="fas fa-tags"></i> Gerenciar Itens
-                        </button>
                         <button class="tab-btn" onclick="switchTab('tab-itens', this)">
                             <i class="fas fa-archive"></i> Lista de Itens
                         </button>
@@ -576,25 +641,6 @@
                             </a>
                         </div>
                     </div>
-
-                    <div id="tab-gerenciar" class="tab-panel">
-                        <div class="manager-form">
-
-                            <!-- Campo Nome com dropdown de busca -->
-                            <div class="manager-autocomplete-wrapper">
-                                <input
-                                    type="text"
-                                    id="manager-nome-geral"
-                                    class="auth-input"
-                                    placeholder="Nome do item (buscar ou criar novo)..."
-                                    autocomplete="off"
-                                    oninput="onManagerNomeInput()"
-                                    onfocus="abrirDropdownCompleto()"
-                                    onblur="fecharDropdownManager()"
-                                >
-                                <ul id="manager-dropdown" class="manager-dropdown"></ul>
-                            </div>
-
                             <!-- Campo Preço -->
                             <input type="text" id="manager-price-geral" class="auth-input" placeholder="Preço (ex: R$ 5,00) — opcional" onblur="formatCurrencyManager(this)">
 
@@ -613,7 +659,47 @@
                     </div>
 
                     <div id="tab-itens" class="tab-panel">
-                        <input type="text" id="itens-search-input" placeholder="Pesquisar item...">
+                        <!-- Barra superior: pesquisa + botão adicionar -->
+                        <div class="itens-top-bar">
+                            <input type="text" id="itens-search-input" placeholder="Pesquisar item...">
+                            <button class="custom-btn itens-add-toggle-btn" onclick="toggleItensForm(true)" title="Adicionar novo item">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+
+                        <!-- Formulário inline (oculto por padrão) -->
+                        <div id="itens-form" style="display:none;">
+                            <div class="manager-autocomplete-wrapper itens-nome-wrapper">
+                                <input
+                                    type="text"
+                                    id="manager-nome-geral"
+                                    class="auth-input"
+                                    placeholder="Nome do item (buscar ou criar novo)..."
+                                    autocomplete="off"
+                                    oninput="onManagerNomeInput()"
+                                    onfocus="abrirDropdownCompleto()"
+                                    onblur="fecharDropdownManager()"
+                                >
+                                <button class="itens-clear-btn" id="manager-nome-clear" onclick="clearManagerNome()" type="button" title="Limpar">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                <ul id="manager-dropdown" class="manager-dropdown"></ul>
+                            </div>
+                            <input type="text" id="manager-price-geral" class="auth-input" placeholder="Preço (ex: R$ 5,00) — opcional" onblur="formatCurrencyManager(this)" style="margin-bottom:0;">
+                            <div class="button-group" id="manager-btn-group">
+                                <button class="custom-btn" id="manager-btn-salvar" onclick="gerenciarItemManager()" style="flex-grow:1;">
+                                    <i class="fas fa-save" id="manager-btn-icon"></i>
+                                    <span id="manager-btn-label">Adicionar Item</span>
+                                </button>
+                                <button class="custom-btn secondary manager-remove-btn" id="manager-btn-remover" onclick="removerItemManager()" style="flex-grow:1; display:none;">
+                                    <i class="fas fa-trash-alt"></i> Remover
+                                </button>
+                                <button class="custom-btn secondary" onclick="toggleItensForm(false)" style="flex-grow:1;">
+                                    <i class="fas fa-times"></i> Cancelar
+                                </button>
+                            </div>
+                        </div>
+
                         <p class="itens-status" id="itens-status-message">Carregando...</p>
                         <ul id="itens-shopping-list"></ul>
                     </div>
@@ -777,6 +863,8 @@
             document.getElementById(tabId).classList.add('active');
             btn.classList.add('active');
             if (tabId === 'tab-itens') {
+                // Fecha o form ao trocar de aba
+                toggleItensForm(false);
                 renderItensTab('');
                 const si = document.getElementById('itens-search-input');
                 if (si && !si._bound) {
@@ -820,7 +908,11 @@
                 li.innerHTML = `
                     <i class="fas fa-check-circle itens-in-list-icon"></i>
                     <span class="itens-item-name">${item.nome}</span>
-                    <button class="itens-add-btn"><i class="fas fa-plus"></i></button>
+                    <div class="itens-item-actions">
+                        <button class="itens-add-btn" title="Adicionar à lista de compras"><i class="fas fa-plus"></i></button>
+                        <button class="itens-action-btn itens-edit-btn" onclick="editarItemItens('${item.nome.replace(/'/g,"\\'")}')" title="Editar item"><i class="fas fa-pencil-alt"></i></button>
+                        <button class="itens-action-btn itens-delete-btn" onclick="deletarItemItens('${item.nome.replace(/'/g,"\\'")}')" title="Excluir item"><i class="fas fa-trash-alt"></i></button>
+                    </div>
                 `;
                 listElement.appendChild(li);
             });
@@ -904,6 +996,10 @@
             const dropdown = document.getElementById('manager-dropdown');
             const termo = normalizeString(input.value.trim());
 
+            // Mostra/oculta botão X
+            const clearBtn = document.getElementById('manager-nome-clear');
+            if (clearBtn) clearBtn.style.display = input.value.trim() ? '' : 'none';
+
             // Se o usuário limpou o campo, volta ao modo "novo"
             if (_managerItemOriginal && input.value.trim() === '') {
                 _managerItemOriginal = null;
@@ -962,6 +1058,8 @@
             document.getElementById('manager-dropdown').classList.remove('open');
             _managerItemOriginal = nomeCompleto; // Marca como edição
             atualizarBotoesManager(true);
+            const clearBtn = document.getElementById('manager-nome-clear');
+            if (clearBtn) clearBtn.style.display = nomeBase ? '' : 'none';
         }
 
         function atualizarBotoesManager(modoEdicao) {
@@ -982,7 +1080,14 @@
             });
             if (!response.ok) throw new Error();
             setSyncStatus('saved');
-            await carregarItens();
+            // CORREÇÃO BUG 1 e 2:
+            // Não re-fetcha do servidor após salvar. O carregarItens() fazia um GET em
+            // endpoint diferente do PUT, retornando dado desatualizado (race condition) e
+            // sobrescrevendo itensList — causando reverter edições anteriores ao salvar
+            // múltiplos itens em sequência.
+            // Em vez disso, atualiza a aba diretamente com o itensList já correto em memória,
+            // refletindo as mudanças imediatamente sem precisar recarregar a página.
+            renderItensTab('');
             alert(mensagemSucesso);
         }
 
@@ -1011,12 +1116,15 @@
                         return;
                     }
                     itensList.push({ nome: nomeCompleto });
+                    itensList.sort((a, b) => normalizeString(a.nome).localeCompare(normalizeString(b.nome)));
                     await salvarItensNoServidor(`"${nomeBase}" adicionado com sucesso!`);
                     // Limpa o form após adicionar
                     document.getElementById('manager-nome-geral').value = '';
                     document.getElementById('manager-price-geral').value = '';
                     _managerItemOriginal = null;
                     atualizarBotoesManager(false);
+                    const clearBtn = document.getElementById('manager-nome-clear');
+                    if (clearBtn) clearBtn.style.display = 'none';
                 }
             } catch {
                 setSyncStatus('error');
@@ -1037,6 +1145,67 @@
                 document.getElementById('manager-price-geral').value = '';
                 _managerItemOriginal = null;
                 atualizarBotoesManager(false);
+                const clearBtn = document.getElementById('manager-nome-clear');
+                if (clearBtn) clearBtn.style.display = 'none';
+                toggleItensForm(false);
+            } catch {
+                setSyncStatus('error');
+                alert('Erro ao remover no servidor.');
+            }
+        }
+
+
+        // --- FUNÇÕES DA LISTA DE ITENS (inline form) ---
+
+        function toggleItensForm(show) {
+            const form = document.getElementById('itens-form');
+            if (!form) return;
+            form.style.display = show ? '' : 'none';
+            if (show) {
+                // Abre em modo "novo" se não vier de edição
+                if (!_managerItemOriginal) {
+                    document.getElementById('manager-nome-geral').value = '';
+                    document.getElementById('manager-price-geral').value = '';
+                    const clearBtn = document.getElementById('manager-nome-clear');
+                    if (clearBtn) clearBtn.style.display = 'none';
+                    atualizarBotoesManager(false);
+                }
+                setTimeout(() => document.getElementById('manager-nome-geral').focus(), 50);
+            } else {
+                // Reset ao fechar
+                _managerItemOriginal = null;
+                document.getElementById('manager-nome-geral').value = '';
+                document.getElementById('manager-price-geral').value = '';
+                const clearBtn = document.getElementById('manager-nome-clear');
+                if (clearBtn) clearBtn.style.display = 'none';
+                atualizarBotoesManager(false);
+            }
+        }
+
+        function clearManagerNome() {
+            const input = document.getElementById('manager-nome-geral');
+            input.value = '';
+            _managerItemOriginal = null;
+            atualizarBotoesManager(false);
+            const clearBtn = document.getElementById('manager-nome-clear');
+            if (clearBtn) clearBtn.style.display = 'none';
+            document.getElementById('manager-dropdown').classList.remove('open');
+            input.focus();
+        }
+
+        function editarItemItens(nomeCompleto) {
+            toggleItensForm(true);
+            // Pequeno delay para garantir que o form está visível
+            setTimeout(() => selecionarItemManager(nomeCompleto), 30);
+        }
+
+        async function deletarItemItens(nomeCompleto) {
+            const { nomeBase } = extrairNomeEPreco(nomeCompleto);
+            if (!confirm(`Remover "${nomeBase}" da lista de itens?`)) return;
+            itensList = itensList.filter(i => i.nome !== nomeCompleto);
+            setSyncStatus('syncing');
+            try {
+                await salvarItensNoServidor(`"${nomeBase}" removido com sucesso!`);
             } catch {
                 setSyncStatus('error');
                 alert('Erro ao remover no servidor.');
@@ -1790,4 +1959,4 @@
         }
     </script>
 </body>
-</html>
+    </html>
