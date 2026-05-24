@@ -695,7 +695,7 @@
                                 <input type="text" id="itens-search-input" placeholder="Pesquisar item...">
                                 <button id="itens-search-clear" title="Limpar busca" onclick="clearItensSearch()"><i class="fas fa-times"></i></button>
                             </div>
-                            <button class="itens-search-add-btn" title="Adicionar novo item" onclick="abrirModalItem(null)"><i class="fas fa-plus"></i></button>
+                            <button class="itens-search-add-btn" title="Adicionar novo item" onclick="abrirModalItem(null, document.getElementById('itens-search-input').value.trim())"><i class="fas fa-plus"></i></button>
                         </div>
                         <p class="itens-status" id="itens-status-message">Carregando...</p>
                         <ul id="itens-shopping-list"></ul>
@@ -952,7 +952,7 @@
         // Modal helpers
         let _modalEditNomeOriginal = null;
 
-        function abrirModalItem(nomeExistente) {
+        function abrirModalItem(nomeExistente, nomePrefill = '') {
             _modalEditNomeOriginal = nomeExistente;
             const title = document.getElementById('itens-modal-title');
             const input = document.getElementById('itens-modal-input');
@@ -968,7 +968,7 @@
             } else {
                 title.textContent = 'Adicionar Item';
                 btnLabel.textContent = 'Adicionar';
-                input.value = '';
+                input.value = nomePrefill;
                 price.value = '';
             }
 
