@@ -1418,19 +1418,22 @@
         }
 
         function getCurrentLocalItems() {
+            const seen = new Set();
             const items = [];
             document.querySelectorAll('#shopping-list-body tr:not(.add-item-row)').forEach(row => {
                 const name = row.cells[1].querySelector('textarea').value.trim();
-                if (name) {
-                    items.push({
-                        // ATUALIZADO: Inclui o ID do item
-                        id: row.dataset.id ? parseInt(row.dataset.id) : null,
-                        name: name,
-                        priceShibata: row.cells[2].querySelector('input').value || 'R$ 0,00',
-                        priceNagumo: row.cells[3].querySelector('input').value || 'R$ 0,00',
-                        purchased: row.classList.contains('purchased')
-                    });
-                }
+                if (!name) return;
+                const key = normalizeString(name);
+                // Ignora duplicatas no DOM — mantém o primeiro (que tem ID quando já sincronizado)
+                if (seen.has(key)) return;
+                seen.add(key);
+                items.push({
+                    id: row.dataset.id ? parseInt(row.dataset.id) : null,
+                    name: name,
+                    priceShibata: row.cells[2].querySelector('input').value || 'R$ 0,00',
+                    priceNagumo: row.cells[3].querySelector('input').value || 'R$ 0,00',
+                    purchased: row.classList.contains('purchased')
+                });
             });
             return items;
         }
@@ -1487,23 +1490,36 @@
                 localStorage.removeItem(`offlineList_${username}`);
                 localStorage.removeItem(`pendingDeletes_${username}`);
 
-                // ATUALIZADO: Redesenha a tabela com a lista do servidor
-                // Isso é crucial para que os novos itens recebam seus IDs corretos no DOM
-
-                // CORREÇÃO: Não redesenha a tabela se o usuário estiver
-                // ativamente digitando em um campo, para evitar perda de dados/foco.
+                // Só bloqueia o redesenho se o usuário estiver digitando em uma linha
+                // EXISTENTE (não na linha de novo item), para evitar perda de preços em edição.
                 const activeEl = document.activeElement;
-                const isTypingInTable = activeEl && ['INPUT', 'TEXTAREA'].includes(activeEl.tagName) && tableBody.contains(activeEl);
+                const activeRow = activeEl?.closest('tr');
+                const isTypingInExistingRow = activeEl &&
+                    ['INPUT', 'TEXTAREA'].includes(activeEl.tagName) &&
+                    tableBody.contains(activeEl) &&
+                    activeRow && !activeRow.classList.contains('add-item-row');
 
-                if (!isTypingInTable) {
-                    // Passa 'false' para não roubar o foco para o campo "novo item"
-                    redrawTable(mergedItems, false); 
+                if (!isTypingInExistingRow) {
+                    // Preserva o conteúdo do campo "adicionar item" antes de redesenhar
+                    const pendingName  = document.getElementById('newItemName')?.value || '';
+                    const addRow = document.querySelector('.add-item-row');
+                    const pendingShib  = addRow?.cells[2]?.querySelector('input')?.value || '';
+                    const pendingNag   = addRow?.cells[3]?.querySelector('input')?.value || '';
+
+                    redrawTable(mergedItems, false);
+
+                    // Restaura o conteúdo do campo "adicionar item" após o redesenho
+                    if (pendingName) {
+                        const ni = document.getElementById('newItemName');
+                        if (ni) { ni.value = pendingName; autoResizeTextarea(ni); }
+                        const newAddRow = document.querySelector('.add-item-row');
+                        if (newAddRow) {
+                            if (pendingShib) newAddRow.cells[2].querySelector('input').value = pendingShib;
+                            if (pendingNag)  newAddRow.cells[3].querySelector('input').value = pendingNag;
+                        }
+                    }
                 } else {
-                    // O usuário está digitando. Não redesenhe agora.
-                    // A lista em cache foi atualizada, o próximo
-                    // 'pollForChanges' (quando o usuário parar de digitar) 
-                    // vai sincronizar a UI.
-                    console.log("Usuário digitando, adiando redesenho da UI.");
+                    console.log("Usuário editando item existente, adiando redesenho da UI.");
                 }
 
             } catch (error) {
@@ -1839,8 +1855,16 @@
         function redrawTable(items, shouldFocusNewItem = true) {
             tableBody.innerHTML = '';
             if (items && items.length > 0) {
-                // ATUALIZADO: Os itens são desenhados na ordem recebida (que é 'id DESC' do servidor)
-                items.forEach(item => buildItemRow(item, false));
+                // Deduplica por nome antes de renderizar (mantém o item com ID mais alto)
+                const seen = new Map();
+                items.forEach(item => {
+                    const key = normalizeString(item.name);
+                    const existing = seen.get(key);
+                    if (!existing || (item.id && (!existing.id || item.id > existing.id))) {
+                        seen.set(key, item);
+                    }
+                });
+                seen.forEach(item => buildItemRow(item, false));
                 sortAndGroup();
             }
             createAddItemRow(shouldFocusNewItem);
