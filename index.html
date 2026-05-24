@@ -1006,7 +1006,7 @@
                 }
 
                 // Ordena em ordem alfabética
-                itensList.sort((a, b) => normalizeString(a.nome).localeCompare(normalizeString(b.nome)));
+                itensList.sort((a, b) => sortKey(a.nome).localeCompare(sortKey(b.nome)));
 
                 await salvarItensNoServidor(_modalEditNomeOriginal
                     ? `"${nomeBase}" atualizado com sucesso!`
@@ -1234,7 +1234,7 @@
                     }
                     itensList.push({ nome: nomeCompleto });
                     // Ordena em ordem alfabética
-                    itensList.sort((a, b) => normalizeString(a.nome).localeCompare(normalizeString(b.nome)));
+                    itensList.sort((a, b) => sortKey(a.nome).localeCompare(sortKey(b.nome)));
                     await salvarItensNoServidor(`"${nomeBase}" adicionado com sucesso!`);
                     // Limpa o form após adicionar
                     document.getElementById('manager-nome-geral').value = '';
@@ -1320,6 +1320,14 @@
         // --- FUNÇÃO ADICIONADA: Normaliza string para comparação sem acentos ---
         function normalizeString(str) {
             return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        }
+
+        function stripEmojis(str) {
+            return str.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
+        }
+
+        function sortKey(nome) {
+            return normalizeString(stripEmojis(nome));
         }
 
         function setSyncStatus(newState) {
