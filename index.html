@@ -382,9 +382,22 @@
         }
 
         /* --- LISTA DE ITENS (Tab 4) --- */
+        .itens-search-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            position: relative;
+        }
+        .itens-search-field {
+            position: relative;
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+        }
         #itens-search-input {
             width: 100%;
-            padding: 12px 15px;
+            padding: 12px 38px 12px 15px;
             background-color: var(--input-bg-color);
             color: var(--text-color);
             border: 1px solid #444;
@@ -392,13 +405,43 @@
             font-size: 1rem;
             outline: none;
             transition: border-color 0.2s, box-shadow 0.2s;
-            margin-bottom: 8px;
         }
         #itens-search-input::placeholder { color: var(--secondary-text-color); }
         #itens-search-input:focus {
             border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.2);
         }
+        #itens-search-clear {
+            position: absolute;
+            right: 10px;
+            background: none;
+            border: none;
+            color: var(--secondary-text-color);
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0;
+            display: none;
+            line-height: 1;
+        }
+        #itens-search-clear:hover { color: var(--text-color); }
+        #itens-search-clear.visible { display: block; }
+        .itens-search-add-btn {
+            background-color: var(--primary-color);
+            color: var(--bg-color);
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: bold;
+            width: 44px;
+            height: 44px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+        .itens-search-add-btn:hover { background-color: #ffd54f; }
         #itens-shopping-list {
             list-style-type: none;
             padding: 0;
@@ -408,38 +451,110 @@
         #itens-shopping-list li {
             background-color: var(--input-bg-color);
             border-radius: 5px;
-            padding: 0.8rem 1rem;
+            padding: 0.7rem 0.8rem;
             margin-bottom: 0.5rem;
             font-size: 1.1rem;
             color: var(--text-color);
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            gap: 6px;
             transition: background-color 0.2s;
         }
         #itens-shopping-list li:hover { background-color: #575757; }
-        .itens-item-name { flex-grow: 1; padding: 0 10px; }
+        .itens-item-name { flex-grow: 1; padding: 0 4px; }
         .itens-in-list-icon {
             color: var(--green-highlight);
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             width: 20px;
             text-align: center;
+            flex-shrink: 0;
             display: none;
         }
         .itens-add-btn {
             background: none;
             border: none;
             color: var(--primary-color);
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             cursor: pointer;
-            width: 20px;
+            width: 28px;
             text-align: center;
             padding: 0;
+            flex-shrink: 0;
             display: none;
         }
         .itens-add-btn:hover { color: #ffd54f; }
+        .itens-edit-btn {
+            background: none;
+            border: none;
+            color: var(--secondary-text-color);
+            font-size: 1rem;
+            cursor: pointer;
+            width: 28px;
+            text-align: center;
+            padding: 0;
+            flex-shrink: 0;
+            transition: color 0.2s;
+        }
+        .itens-edit-btn:hover { color: var(--primary-color); }
+        .itens-delete-btn {
+            background: none;
+            border: none;
+            color: var(--secondary-text-color);
+            font-size: 1rem;
+            cursor: pointer;
+            width: 28px;
+            text-align: center;
+            padding: 0;
+            flex-shrink: 0;
+            transition: color 0.2s;
+        }
+        .itens-delete-btn:hover { color: var(--danger-color); }
         #itens-shopping-list li.in-list .itens-in-list-icon { display: block; }
         #itens-shopping-list li:not(.in-list) .itens-add-btn { display: block; }
+        /* Modal de Adicionar/Editar Item */
+        #itens-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.75);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        #itens-modal-overlay.open { display: flex; }
+        #itens-modal {
+            background: var(--card-color);
+            border-radius: var(--border-radius);
+            padding: 24px;
+            width: 100%;
+            max-width: 420px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        #itens-modal h3 { margin: 0; color: var(--primary-color); font-size: 1.1rem; }
+        #itens-modal-input {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--input-bg-color);
+            border: 1px solid #444;
+            border-radius: 8px;
+            color: var(--text-color);
+            font-size: 1rem;
+        }
+        #itens-modal-input:focus { outline: none; border-color: var(--primary-color); }
+        #itens-modal-price {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--input-bg-color);
+            border: 1px solid #444;
+            border-radius: 8px;
+            color: var(--text-color);
+            font-size: 1rem;
+        }
+        #itens-modal-price:focus { outline: none; border-color: var(--primary-color); }
+        .itens-modal-btns { display: flex; gap: 10px; }
         .itens-status {
             font-style: italic;
             color: var(--secondary-text-color);
@@ -533,9 +648,6 @@
                         <button class="tab-btn" onclick="switchTab('tab-busca', this)">
                             <i class="fas fa-search-dollar"></i> Busca Preço Auto
                         </button>
-                        <button class="tab-btn" onclick="switchTab('tab-gerenciar', this)">
-                            <i class="fas fa-tags"></i> Gerenciar Itens
-                        </button>
                         <button class="tab-btn" onclick="switchTab('tab-itens', this)">
                             <i class="fas fa-archive"></i> Lista de Itens
                         </button>
@@ -577,43 +689,14 @@
                         </div>
                     </div>
 
-                    <div id="tab-gerenciar" class="tab-panel">
-                        <div class="manager-form">
-
-                            <!-- Campo Nome com dropdown de busca -->
-                            <div class="manager-autocomplete-wrapper">
-                                <input
-                                    type="text"
-                                    id="manager-nome-geral"
-                                    class="auth-input"
-                                    placeholder="Nome do item (buscar ou criar novo)..."
-                                    autocomplete="off"
-                                    oninput="onManagerNomeInput()"
-                                    onfocus="abrirDropdownCompleto()"
-                                    onblur="fecharDropdownManager()"
-                                >
-                                <ul id="manager-dropdown" class="manager-dropdown"></ul>
-                            </div>
-
-                            <!-- Campo Preço -->
-                            <input type="text" id="manager-price-geral" class="auth-input" placeholder="Preço (ex: R$ 5,00) — opcional" onblur="formatCurrencyManager(this)">
-
-                            <!-- Botões dinâmicos -->
-                            <div class="button-group" id="manager-btn-group">
-                                <button class="custom-btn" id="manager-btn-salvar" onclick="gerenciarItemManager()" style="flex-grow:1;">
-                                    <i class="fas fa-save" id="manager-btn-icon"></i>
-                                    <span id="manager-btn-label">Adicionar Item</span>
-                                </button>
-                                <button class="custom-btn secondary manager-remove-btn" id="manager-btn-remover" onclick="removerItemManager()" style="flex-grow:1; display:none;">
-                                    <i class="fas fa-trash-alt"></i> Remover
-                                </button>
-                            </div>
-
-                        </div>
-                    </div>
-
                     <div id="tab-itens" class="tab-panel">
-                        <input type="text" id="itens-search-input" placeholder="Pesquisar item...">
+                        <div class="itens-search-wrapper">
+                            <div class="itens-search-field">
+                                <input type="text" id="itens-search-input" placeholder="Pesquisar item...">
+                                <button id="itens-search-clear" title="Limpar busca" onclick="clearItensSearch()"><i class="fas fa-times"></i></button>
+                            </div>
+                            <button class="itens-search-add-btn" title="Adicionar novo item" onclick="abrirModalItem(null)"><i class="fas fa-plus"></i></button>
+                        </div>
                         <p class="itens-status" id="itens-status-message">Carregando...</p>
                         <ul id="itens-shopping-list"></ul>
                     </div>
@@ -624,6 +707,19 @@
             <footer class="footer">
                 Feito para facilitar suas compras. 🛒💡
             </footer>
+        </div>
+    </div>
+
+    <!-- Modal Adicionar/Editar Item da Lista -->
+    <div id="itens-modal-overlay" onclick="if(event.target===this)fecharModalItem()">
+        <div id="itens-modal">
+            <h3 id="itens-modal-title">Adicionar Item</h3>
+            <input type="text" id="itens-modal-input" placeholder="Nome do item..." autocomplete="off" onkeydown="if(event.key==='Enter')confirmarModalItem()">
+            <input type="text" id="itens-modal-price" placeholder="Preço (ex: R$ 5,00) — opcional" onkeydown="if(event.key==='Enter')confirmarModalItem()" onblur="formatCurrencyManager(this)">
+            <div class="itens-modal-btns">
+                <button class="custom-btn" onclick="confirmarModalItem()" style="flex-grow:1;"><i class="fas fa-save"></i> <span id="itens-modal-btn-label">Adicionar</span></button>
+                <button class="custom-btn secondary" onclick="fecharModalItem()" style="flex-grow:1;"><i class="fas fa-times"></i> Cancelar</button>
+            </div>
         </div>
     </div>
 
@@ -764,7 +860,12 @@
 
         function openNav() { document.getElementById("side-menu").classList.add('open'); document.getElementById("page-overlay").classList.add('show'); }
         function closeNav() { document.getElementById("side-menu").classList.remove('open'); document.getElementById("page-overlay").classList.remove('show'); }
-        document.addEventListener('keydown', (event) => { if (event.key === "Escape") closeNav(); });
+        document.addEventListener('keydown', (event) => { 
+            if (event.key === "Escape") {
+                closeNav();
+                fecharModalItem();
+            }
+        });
 
         function toggleTabs(btn) {
             const wrapper = btn.closest('.tabs-wrapper');
@@ -780,7 +881,11 @@
                 renderItensTab('');
                 const si = document.getElementById('itens-search-input');
                 if (si && !si._bound) {
-                    si.addEventListener('input', () => renderItensTab(si.value));
+                    si.addEventListener('input', () => {
+                        renderItensTab(si.value);
+                        const clearBtn = document.getElementById('itens-search-clear');
+                        if (clearBtn) clearBtn.classList.toggle('visible', si.value.length > 0);
+                    });
                     si._bound = true;
                 }
             }
@@ -820,7 +925,9 @@
                 li.innerHTML = `
                     <i class="fas fa-check-circle itens-in-list-icon"></i>
                     <span class="itens-item-name">${item.nome}</span>
-                    <button class="itens-add-btn"><i class="fas fa-plus"></i></button>
+                    <button class="itens-add-btn" title="Adicionar à lista de compras"><i class="fas fa-plus"></i></button>
+                    <button class="itens-edit-btn" title="Editar item"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="itens-delete-btn" title="Remover item"><i class="fas fa-trash-alt"></i></button>
                 `;
                 listElement.appendChild(li);
             });
@@ -834,15 +941,123 @@
             saveList();
         }
 
-        // Listener delegado para os botões "+" da lista de itens
+        function clearItensSearch() {
+            const si = document.getElementById('itens-search-input');
+            if (si) { si.value = ''; si.focus(); }
+            const clearBtn = document.getElementById('itens-search-clear');
+            if (clearBtn) clearBtn.classList.remove('visible');
+            renderItensTab('');
+        }
+
+        // Modal helpers
+        let _modalEditNomeOriginal = null;
+
+        function abrirModalItem(nomeExistente) {
+            _modalEditNomeOriginal = nomeExistente;
+            const title = document.getElementById('itens-modal-title');
+            const input = document.getElementById('itens-modal-input');
+            const price = document.getElementById('itens-modal-price');
+            const btnLabel = document.getElementById('itens-modal-btn-label');
+
+            if (nomeExistente) {
+                const { nomeBase, preco } = extrairNomeEPreco(nomeExistente);
+                title.textContent = 'Editar Item';
+                btnLabel.textContent = 'Salvar';
+                input.value = nomeBase;
+                price.value = preco;
+            } else {
+                title.textContent = 'Adicionar Item';
+                btnLabel.textContent = 'Adicionar';
+                input.value = '';
+                price.value = '';
+            }
+
+            document.getElementById('itens-modal-overlay').classList.add('open');
+            setTimeout(() => input.focus(), 100);
+        }
+
+        function fecharModalItem() {
+            document.getElementById('itens-modal-overlay').classList.remove('open');
+            _modalEditNomeOriginal = null;
+        }
+
+        async function confirmarModalItem() {
+            const nomeBase = document.getElementById('itens-modal-input').value.trim();
+            const preco = document.getElementById('itens-modal-price').value.trim();
+            if (!nomeBase) { alert('Digite o nome do item.'); return; }
+
+            const nomeCompleto = preco ? `${nomeBase} ${preco}` : nomeBase;
+            setSyncStatus('syncing');
+
+            try {
+                if (_modalEditNomeOriginal) {
+                    // Edição
+                    const idx = itensList.findIndex(i => i.nome === _modalEditNomeOriginal);
+                    if (idx === -1) { setSyncStatus('error'); return; }
+                    itensList[idx].nome = nomeCompleto;
+                } else {
+                    // Adição
+                    if (itensList.some(i => normalizeString(i.nome) === normalizeString(nomeCompleto))) {
+                        setSyncStatus('saved');
+                        alert('Já existe um item com esse nome na lista.');
+                        return;
+                    }
+                    itensList.push({ nome: nomeCompleto });
+                }
+
+                // Ordena em ordem alfabética
+                itensList.sort((a, b) => normalizeString(a.nome).localeCompare(normalizeString(b.nome)));
+
+                await salvarItensNoServidor(_modalEditNomeOriginal
+                    ? `"${nomeBase}" atualizado com sucesso!`
+                    : `"${nomeBase}" adicionado com sucesso!`);
+                fecharModalItem();
+            } catch {
+                setSyncStatus('error');
+                alert('Erro ao salvar no servidor.');
+            }
+        }
+
+        async function deletarItemLista(nomeCompleto) {
+            const { nomeBase } = extrairNomeEPreco(nomeCompleto);
+            if (!confirm(`Remover "${nomeBase}" da lista de itens?`)) return;
+            itensList = itensList.filter(i => i.nome !== nomeCompleto);
+            setSyncStatus('syncing');
+            try {
+                await salvarItensNoServidor(`"${nomeBase}" removido com sucesso!`);
+            } catch {
+                setSyncStatus('error');
+                alert('Erro ao remover no servidor.');
+            }
+        }
+
+        // Listener delegado para os botões de ação na lista de itens
         document.addEventListener('click', (event) => {
             const addBtn = event.target.closest('.itens-add-btn');
-            if (!addBtn) return;
-            const li = addBtn.closest('li');
-            if (!li || li.classList.contains('in-list')) return;
-            const itemName = li.dataset.itemName;
-            if (!itemName) return;
-            adicionarItemDaLista(itemName, li);
+            if (addBtn) {
+                const li = addBtn.closest('li');
+                if (!li || li.classList.contains('in-list')) return;
+                const itemName = li.dataset.itemName;
+                if (!itemName) return;
+                adicionarItemDaLista(itemName, li);
+                return;
+            }
+
+            const editBtn = event.target.closest('.itens-edit-btn');
+            if (editBtn) {
+                const li = editBtn.closest('li');
+                if (!li) return;
+                abrirModalItem(li.dataset.itemName);
+                return;
+            }
+
+            const deleteBtn = event.target.closest('.itens-delete-btn');
+            if (deleteBtn) {
+                const li = deleteBtn.closest('li');
+                if (!li) return;
+                deletarItemLista(li.dataset.itemName);
+                return;
+            }
         });
 
         // --- GERENCIAR ITENS (Tab 3) ---
@@ -1018,6 +1233,8 @@
                         return;
                     }
                     itensList.push({ nome: nomeCompleto });
+                    // Ordena em ordem alfabética
+                    itensList.sort((a, b) => normalizeString(a.nome).localeCompare(normalizeString(b.nome)));
                     await salvarItensNoServidor(`"${nomeBase}" adicionado com sucesso!`);
                     // Limpa o form após adicionar
                     document.getElementById('manager-nome-geral').value = '';
