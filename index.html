@@ -934,9 +934,13 @@
         }
 
         function adicionarItemDaLista(itemName, li) {
-            // Atualização otimista da UI
+            // Verifica duplicata antes de adicionar
+            const existingItems = getCurrentLocalItems();
+            if (existingItems.some(i => normalizeString(i.name) === normalizeString(itemName))) {
+                li.classList.add('in-list'); // Marca como já na lista na UI
+                return;
+            }
             li.classList.add('in-list');
-
             buildItemRow({ id: null, name: itemName, priceShibata: 'R$ 0,00', priceNagumo: 'R$ 0,00', purchased: false }, true);
             saveList();
         }
@@ -1197,13 +1201,9 @@
             });
             if (!response.ok) throw new Error();
             setSyncStatus('saved');
-            // CORREÇÃO BUG 1 e 2:
-            // Não re-fetcha do servidor após salvar. O carregarItens() fazia um GET em
-            // endpoint diferente do PUT, retornando dado desatualizado (race condition) e
-            // sobrescrevendo itensList — causando reverter edições anteriores ao salvar
-            // múltiplos itens em sequência.
-            // Em vez disso, atualiza a aba diretamente com o itensList já correto em memória,
-            // refletindo as mudanças imediatamente sem precisar recarregar a página.
+            // Persiste localmente para evitar dado obsoleto do CDN no primeiro recarregamento
+            localStorage.setItem('itensList_cache', JSON.stringify(itensList));
+            localStorage.setItem('itensList_saved_at', Date.now().toString());
             renderItensTab('');
             alert(mensagemSucesso);
         }
@@ -1295,23 +1295,46 @@
         let itensList = [];
 
         async function carregarItens() {
+            // Se houve um salvamento recente (< 60s), usa o cache local para evitar
+            // dado obsoleto do CDN no primeiro recarregamento após editar.
+            const cachedList = localStorage.getItem('itensList_cache');
+            const savedAt = parseInt(localStorage.getItem('itensList_saved_at') || '0');
+            const GRACE_MS = 60000; // 60 segundos de janela de proteção
+            if (cachedList && (Date.now() - savedAt) < GRACE_MS) {
+                itensList = JSON.parse(cachedList);
+                console.log(`Itens carregados do cache local (salvamento recente): ${itensList.length}`);
+                popularSelectItemManager();
+                // Busca do servidor em background para confirmar; atualiza cache se não houver nova edição pendente
+                fetch(WORKER_URL).then(r => r.ok ? r.json() : null).then(serverList => {
+                    if (serverList && (Date.now() - parseInt(localStorage.getItem('itensList_saved_at') || '0')) >= GRACE_MS) {
+                        itensList = serverList;
+                        localStorage.setItem('itensList_cache', JSON.stringify(itensList));
+                        popularSelectItemManager();
+                    }
+                }).catch(() => {});
+                return;
+            }
+
             try {
-                // ALTERADO: Agora busca do endpoint da API (Cloudflare KV)
-                const response = await fetch(WORKER_URL); 
+                const response = await fetch(WORKER_URL);
                 if (!response.ok) {
-                    // Se a rede falhar E não houver cache (primeiro acesso offline), 
-                    // a promise pode ser rejeitada ou o status ser 503 (offline).
-                    // O SW deve retornar a versão em cache. Se chegou aqui, 
-                    // significa que falhou na rede E o SW não tinha cache.
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 itensList = await response.json();
+                // Atualiza o cache sempre que buscar do servidor com sucesso
+                localStorage.setItem('itensList_cache', JSON.stringify(itensList));
+                localStorage.setItem('itensList_saved_at', '0'); // Zera o timer de proteção
                 console.log(`Itens de Autocomplete carregados: ${itensList.length}`);
                 popularSelectItemManager();
             } catch (error) {
                 console.error('Falha ao carregar lista de itens da API (Pode ser o primeiro acesso offline):', error);
-                // Fallback to empty list
-                itensList = [];
+                // Fallback: usa cache local se disponível
+                if (cachedList) {
+                    itensList = JSON.parse(cachedList);
+                    console.log('Usando cache local como fallback offline.');
+                } else {
+                    itensList = [];
+                }
             }
         }
 
@@ -1748,23 +1771,35 @@
             if (shouldFocus) newItemInput.focus();
         }
 
+        let _commitInProgress = false;
+
         function commitItem() {
+            if (_commitInProgress) return;
+
             const itemNameInput = document.getElementById('newItemName');
+            if (!itemNameInput) return;
             const itemName = itemNameInput.value.trim();
             if (itemName === '') {
                 itemNameInput.focus();
                 return;
             }
 
-            closeAutocomplete(); // Garante que deseja fechar ao comitar
+            // Verifica duplicata pelo nome (ignora acentos e maiúsculas)
+            const existingItems = getCurrentLocalItems();
+            if (existingItems.some(i => normalizeString(i.name) === normalizeString(itemName))) {
+                itemNameInput.select();
+                return; // silencioso: apenas mantém o foco no campo
+            }
+
+            _commitInProgress = true;
+            closeAutocomplete();
 
             const row = itemNameInput.closest('tr');
             const priceShibata = row.cells[2].querySelector('input').value || 'R$ 0,00';
             const priceNagumo = row.cells[3].querySelector('input').value || 'R$ 0,00';
 
-            // ATUALIZADO: O novo item não tem 'id'
             buildItemRow({ 
-                id: null, // Novo item
+                id: null,
                 name: itemName, 
                 priceShibata: priceShibata, 
                 priceNagumo: priceNagumo, 
@@ -1772,7 +1807,10 @@
             }, true); 
 
             createAddItemRow(true);
-            saveList(); // Não é debounced, chama saveList() imediatamente
+            saveList();
+
+            // Libera o guard após um curto intervalo para evitar disparos duplos
+            setTimeout(() => { _commitInProgress = false; }, 600);
         }
 
         function buildItemRow(itemData, isNew = false) {
