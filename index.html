@@ -1016,9 +1016,10 @@
                     ? `"${nomeBase}" atualizado com sucesso!`
                     : `"${nomeBase}" adicionado com sucesso!`);
                 fecharModalItem();
-            } catch {
+            } catch (err) {
                 setSyncStatus('error');
-                alert('Erro ao salvar no servidor.');
+                console.error('Erro ao salvar no servidor:', err);
+                alert('Erro ao salvar no servidor: ' + (err && err.message ? err.message : err));
             }
         }
 
@@ -1194,12 +1195,23 @@
         }
 
         async function salvarItensNoServidor(mensagemSucesso) {
-            const response = await fetch(MANAGER_WORKER_URL, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(itensList)
-            });
-            if (!response.ok) throw new Error();
+            let response;
+            try {
+                response = await fetch(MANAGER_WORKER_URL, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(itensList)
+                });
+            } catch (networkErr) {
+                console.error('Falha de rede ao salvar itens:', networkErr);
+                throw new Error('Falha de rede: ' + networkErr.message);
+            }
+            if (!response.ok) {
+                let detalhe = '';
+                try { detalhe = await response.text(); } catch {}
+                console.error('Erro do servidor ao salvar itens:', response.status, detalhe);
+                throw new Error(`HTTP ${response.status}${detalhe ? ' - ' + detalhe : ''}`);
+            }
             setSyncStatus('saved');
             // Persiste localmente para evitar dado obsoleto do CDN no primeiro recarregamento
             localStorage.setItem('itensList_cache', JSON.stringify(itensList));
@@ -1242,9 +1254,10 @@
                     _managerItemOriginal = null;
                     atualizarBotoesManager(false);
                 }
-            } catch {
+            } catch (err) {
                 setSyncStatus('error');
-                alert('Erro ao salvar no servidor.');
+                console.error('Erro ao salvar no servidor:', err);
+                alert('Erro ao salvar no servidor: ' + (err && err.message ? err.message : err));
             }
         }
 
