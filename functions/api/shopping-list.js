@@ -12,51 +12,85 @@ export async function onRequest(context) {
   const headers = new Headers({
     'Content-Type': 'application/json;charset=UTF-8',
     'Access-Control-Allow-Origin': '*', // Permite que qualquer domínio acesse
-    'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, PUT, HEAD, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
   });
 
-  // Lida com requisições CORS "preflight" (o navegador envia antes do GET)
+  // Lida com requisições CORS "preflight" (o navegador envia antes do GET/PUT)
   if (request.method === 'OPTIONS') {
     return new Response(null, { headers });
   }
 
-  // Apenas processa requisições GET
-  if (request.method !== 'GET') {
-    return new Response(JSON.stringify({ error: 'Método não permitido' }), {
-      status: 405,
-      headers,
-    });
-  }
+  // GET - retorna a lista salva
+  if (request.method === 'GET') {
+    try {
+      const shoppingListData = await env.SHOPPING_LIST_KV.get('shopping_list', { type: 'json' });
 
-  try {
-    // 1. Acessa o KV usando o nome da variável que você configurou: 'SHOPPING_LIST_KV'
-    // 2. Busca a chave 'shopping_list'
-    const shoppingListData = await env.SHOPPING_LIST_KV.get('shopping_list', { type: 'json' });
+      if (shoppingListData === null) {
+        return new Response(
+          JSON.stringify({ error: "A chave 'shopping_list' não foi encontrada no KV." }),
+          {
+            status: 404,
+            headers,
+          }
+        );
+      }
 
-    if (shoppingListData === null) {
+      return new Response(JSON.stringify(shoppingListData), {
+        status: 200,
+        headers,
+      });
+    } catch (err) {
+      console.error(err);
       return new Response(
-        JSON.stringify({ error: "A chave 'shopping_list' não foi encontrada no KV." }),
+        JSON.stringify({ error: 'Erro interno no servidor da Função.' }),
         {
-          status: 404,
+          status: 500,
           headers,
         }
       );
     }
-
-    // 3. Retorna os dados encontrados
-    return new Response(JSON.stringify(shoppingListData), {
-      status: 200,
-      headers,
-    });
-
-  } catch (err) {
-    console.error(err);
-    return new Response(
-      JSON.stringify({ error: 'Erro interno no servidor da Função.' }),
-      {
-        status: 500,
-        headers,
-      }
-    );
   }
+
+  // PUT - salva a lista recebida no KV
+  if (request.method === 'PUT') {
+    try {
+      const body = await request.text();
+
+      // Valida que o corpo é um JSON válido antes de gravar
+      try {
+        JSON.parse(body);
+      } catch {
+        return new Response(
+          JSON.stringify({ error: 'Corpo da requisição não é um JSON válido.' }),
+          {
+            status: 400,
+            headers,
+          }
+        );
+      }
+
+      await env.SHOPPING_LIST_KV.put('shopping_list', body);
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers,
+      });
+    } catch (err) {
+      console.error(err);
+      return new Response(
+        JSON.stringify({ error: 'Erro interno no servidor da Função.' }),
+        {
+          status: 500,
+          headers,
+        }
+      );
+    }
+  }
+
+  // Qualquer outro método não é permitido
+  return new Response(JSON.stringify({ error: 'Método não permitido' }), {
+    status: 405,
+    headers,
+  });
 }
