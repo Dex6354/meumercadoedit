@@ -917,6 +917,8 @@
             }
             statusMessage.style.display = 'none';
 
+            const isAdmin = localStorage.getItem('currentUser') === 'Pink';
+
             filtrados.forEach(item => {
                 const isInList = nomesNaLista.has(normalizeString(item.nome));
                 const li = document.createElement('li');
@@ -926,8 +928,10 @@
                     <i class="fas fa-check-circle itens-in-list-icon"></i>
                     <span class="itens-item-name">${item.nome}</span>
                     <button class="itens-add-btn" title="Adicionar à lista de compras"><i class="fas fa-plus"></i></button>
+                    ${isAdmin ? `
                     <button class="itens-edit-btn" title="Editar item"><i class="fas fa-pencil-alt"></i></button>
                     <button class="itens-delete-btn" title="Remover item"><i class="fas fa-trash-alt"></i></button>
+                    ` : ''}
                 `;
                 listElement.appendChild(li);
             });
