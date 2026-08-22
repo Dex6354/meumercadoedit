@@ -1593,6 +1593,21 @@
             const pendingDeletes = JSON.parse(localStorage.getItem(`pendingDeletes_${username}`) || '[]');
             const pendingOfflineItems = JSON.parse(localStorage.getItem(offlineKey));
 
+            // CORREÇÃO: Se existem alterações offline pendentes E estamos online,
+            // sincroniza com o servidor IMEDIATAMENTE em vez de apenas exibir o
+            // cache local. Antes, ao reabrir o app já conectado (sem passar pelo
+            // evento 'online', que só dispara em transições offline->online),
+            // essas pendências ficavam presas no localStorage indefinidamente e
+            // podiam sobrescrever, silenciosamente, edições feitas nesse meio
+            // tempo em outro dispositivo assim que o usuário salvasse algo aqui.
+            if (pendingOfflineItems && isOnline) {
+                console.log("Pendências offline encontradas e conexão disponível: sincronizando com o servidor antes de exibir.");
+                redrawTable(pendingOfflineItems); // feedback imediato enquanto sincroniza
+                setSyncStatus('syncing');
+                await syncOfflineChanges();
+                return;
+            }
+
             if (pendingOfflineItems) {
                 console.log("Carregando lista com alterações offline pendentes.");
                 redrawTable(pendingOfflineItems);
@@ -1601,8 +1616,13 @@
             }
 
             // Se não houver itens pendentes, mas houver exclusões pendentes, marca como offline
-            if (pendingDeletes.length > 0) {
+            // (ou sincroniza, se já estivermos online)
+            if (pendingDeletes.length > 0 && !isOnline) {
                 setSyncStatus('offline');
+            } else if (pendingDeletes.length > 0 && isOnline) {
+                setSyncStatus('syncing');
+                await syncOfflineChanges();
+                return;
             }
 
             if (!isOnline) {
