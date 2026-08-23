@@ -1430,6 +1430,18 @@
                 const remoteItems = await response.json();
                 const localItems = getCurrentLocalItems();
 
+                // CORRIGIDO: persistimos aqui também. Antes, só loadList()
+                // gravava `shoppingList_${username}` no localStorage. Se a
+                // chamada inicial do loadList() falhasse (conexão instável)
+                // mas o polling seguinte funcionasse normalmente, a tela
+                // mostrava os itens certos, mas o cache local ficava vazio/
+                // desatualizado — e ao ficar offline e recarregar a página,
+                // esse cache vazio era o único usado, mostrando lista vazia.
+                const username = localStorage.getItem('currentUser');
+                if (username) {
+                    localStorage.setItem(`shoppingList_${username}`, JSON.stringify(remoteItems));
+                }
+
                 // Compara a lista remota com a local. Se forem diferentes, atualiza a tela.
                 // Esta comparação agora inclui IDs, então é mais robusta.
                 if (JSON.stringify(remoteItems) !== JSON.stringify(localItems)) {
