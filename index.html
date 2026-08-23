@@ -762,7 +762,21 @@
                 usernameDisplay.innerHTML = `<i class="fas fa-user"></i> ${username}`;
             }
 
-            loadList();
+            // CORRIGIDO: se o app abrir/recarregar já ONLINE mas ainda existir
+            // alguma alteração pendente em `offlineList_`/`pendingDeletes_`
+            // (por exemplo, um save anterior que não chegou a terminar antes
+            // do reload), antes só sincronizávamos essas pendências quando o
+            // evento 'online' disparava — o que não acontece em um reload
+            // normal com a conexão já ativa. Isso deixava a bolinha travada
+            // em "offline" (azul/roxo) até minimizar/voltar (o que força o
+            // navegador a re-emitir 'online'). Agora, se já estiver online,
+            // tentamos sincronizar essas pendências assim que o app abre.
+            (async () => {
+                if (isOnline) {
+                    await syncOfflineChanges();
+                }
+                await loadList();
+            })();
             startPolling(); // Inicia a verificação contínua por atualizações
         }
 
