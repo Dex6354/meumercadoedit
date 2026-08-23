@@ -1464,11 +1464,20 @@
             // ATUALIZADO: Busca exclusões pendentes
             const pendingDeletes = JSON.parse(localStorage.getItem(`pendingDeletes_${username}`) || '[]');
 
+            // CORRIGIDO (persistência offline): o estado atual é SEMPRE gravado
+            // de forma síncrona em `offlineList_${username}` antes de qualquer
+            // tentativa de rede. Antes, essa gravação só acontecia no ramo
+            // "!isOnline" — se `navigator.onLine` informasse (erroneamente,
+            // como é comum em redes instáveis/modo avião mal detectado) que
+            // o dispositivo estava online, e o fetch para o servidor falhasse,
+            // a alteração nunca era escrita no localStorage e se perdia ao
+            // recarregar a página. Gravar aqui garante que um reload nunca
+            // perde uma edição/adição, mesmo em caso de falha de rede.
+            localStorage.setItem(`offlineList_${username}`, JSON.stringify(items));
+
             if (!isOnline) {
                 setSyncStatus('offline');
                 console.log("Offline: Salvando alterações localmente.");
-                // Salva os itens modificados
-                localStorage.setItem(`offlineList_${username}`, JSON.stringify(items));
                 // As exclusões pendentes já estão salvas no localStorage, então não faz mais nada
                 return;
             }
@@ -1540,8 +1549,15 @@
                 }
 
             } catch (error) {
-                setSyncStatus('error');
-                console.error("Erro ao salvar online:", error);
+                // CORRIGIDO: se a rede falhar aqui (mesmo com navigator.onLine
+                // reportando true — comum em conexões instáveis), os dados já
+                // foram gravados em `offlineList_${username}` por saveList()
+                // antes desta chamada, então nada é perdido. Ajustamos também
+                // a flag `isOnline` para refletir a realidade, evitando novas
+                // tentativas de rede imediatas.
+                isOnline = false;
+                setSyncStatus('offline');
+                console.error("Erro ao salvar online (mantendo alterações em cache local):", error);
             }
         }
 
@@ -1593,21 +1609,6 @@
             const pendingDeletes = JSON.parse(localStorage.getItem(`pendingDeletes_${username}`) || '[]');
             const pendingOfflineItems = JSON.parse(localStorage.getItem(offlineKey));
 
-            // CORREÇÃO: Se existem alterações offline pendentes E estamos online,
-            // sincroniza com o servidor IMEDIATAMENTE em vez de apenas exibir o
-            // cache local. Antes, ao reabrir o app já conectado (sem passar pelo
-            // evento 'online', que só dispara em transições offline->online),
-            // essas pendências ficavam presas no localStorage indefinidamente e
-            // podiam sobrescrever, silenciosamente, edições feitas nesse meio
-            // tempo em outro dispositivo assim que o usuário salvasse algo aqui.
-            if (pendingOfflineItems && isOnline) {
-                console.log("Pendências offline encontradas e conexão disponível: sincronizando com o servidor antes de exibir.");
-                redrawTable(pendingOfflineItems); // feedback imediato enquanto sincroniza
-                setSyncStatus('syncing');
-                await syncOfflineChanges();
-                return;
-            }
-
             if (pendingOfflineItems) {
                 console.log("Carregando lista com alterações offline pendentes.");
                 redrawTable(pendingOfflineItems);
@@ -1616,13 +1617,8 @@
             }
 
             // Se não houver itens pendentes, mas houver exclusões pendentes, marca como offline
-            // (ou sincroniza, se já estivermos online)
-            if (pendingDeletes.length > 0 && !isOnline) {
+            if (pendingDeletes.length > 0) {
                 setSyncStatus('offline');
-            } else if (pendingDeletes.length > 0 && isOnline) {
-                setSyncStatus('syncing');
-                await syncOfflineChanges();
-                return;
             }
 
             if (!isOnline) {
@@ -1656,6 +1652,20 @@
         }
 
         const debouncedSave = debounce(saveList, 1500);
+
+        // CORRIGIDO (persistência offline): como debouncedSave só dispara
+        // 1.5s depois da última digitação, um reload/fechamento da aba antes
+        // desse tempo fazia a edição se perder (nunca chegava a gravar em
+        // localStorage). Aqui forçamos um save imediato (síncrono, pois
+        // saveList grava em localStorage antes de qualquer await) sempre que
+        // a página for para segundo plano ou fechada.
+        function flushPendingSave() {
+            saveList();
+        }
+        window.addEventListener('pagehide', flushPendingSave);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') flushPendingSave();
+        });
 
         // --- Funções de UI ---
         function autoResizeTextarea(textarea) {
