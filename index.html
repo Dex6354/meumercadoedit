@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meu Mercado</title>
 
+    <script>
+        // OTIMIZAÇÃO: roda ANTES do primeiro paint (script bloqueante no <head>).
+        // Se já existe token salvo, marca <html> com "logged-in" imediatamente,
+        // para o CSS já nascer mostrando o app e escondendo a tela de
+        // "Acesso Seguro" — eliminando o flash da tela de login a cada
+        // abertura do site quando o usuário já está logado.
+        if (localStorage.getItem('authToken')) {
+            document.documentElement.classList.add('logged-in');
+        }
+    </script>
+
     <meta property="og:title" content="Meu Mercado" />
     <meta property="og:type" content="website" />
     <meta property="og:description" content="Sua lista de compras inteligente com comparador de preços e otimização." />
@@ -108,6 +119,18 @@
         /* Ocultar app-container por padrão */
         #app-container {
             display: none;
+        }
+
+        /* OTIMIZAÇÃO: quando o <html> já nasce com a classe "logged-in"
+           (definida pelo script bloqueante no <head>, antes do paint),
+           inverte os displays direto no CSS, sem esperar nenhum JS do
+           final da página rodar. Isso é o que elimina o flash da tela
+           de login para quem já está autenticado. */
+        html.logged-in #auth-container {
+            display: none;
+        }
+        html.logged-in #app-container {
+            display: block;
         }
 
         /* --- HEADER --- */
@@ -2118,15 +2141,22 @@
         }
 
         // --- INICIALIZAÇÃO DA APLICAÇÃO ---
-        document.addEventListener('DOMContentLoaded', async () => {
-            await carregarItens();
-
+        document.addEventListener('DOMContentLoaded', () => {
+            // OTIMIZAÇÃO: a decisão de tela (login x app) não espera mais
+            // carregarItens() (que depende de rede). A classe "logged-in"
+            // no <html> já evitou o flash visual; aqui só disparamos a
+            // função correspondente para popular os dados de cada tela.
             if (localStorage.getItem('authToken')) {
                 showApp();
             } else {
                 showAuth();
             }
             setupVirtualKeyboardListener();
+
+            // carregarItens() roda em paralelo, sem bloquear a exibição da
+            // tela — ela só alimenta o autocomplete da Lista de Itens.
+            carregarItens();
+
             // ATUALIZADO: Verifica pendências para definir o status inicial
             const username = localStorage.getItem('currentUser');
             let hasPending = false;
