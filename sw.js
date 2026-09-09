@@ -1,4 +1,11 @@
-const CACHE_NAME = 'meu-mercado-cache-v4';
+const CACHE_NAME = 'meu-mercado-cache-v5';
+
+// Cache dedicado ao "shell" dos embeds do Streamlit (comparador de preços /
+// busca de preço automática). Fica separado do CACHE_NAME principal porque
+// tem uma regra de expiração própria (2 dias) e não deve ser limpo junto
+// com o cache de ativos estáticos sempre que a versão do app mudar.
+const STREAMLIT_CACHE_NAME = 'meu-mercado-streamlit-cache-v1';
+const STREAMLIT_CACHE_MAX_AGE_MS = 2 * 24 * 60 * 60 * 1000; // 2 dias
 
 // Host do Worker que serve a API de dados (lista de compras) e a API de
 // itens/autocomplete (Lista de Itens). Requisições para este host NUNCA
@@ -95,8 +102,7 @@ self.addEventListener('fetch', event => {
       path === '/api/login' || 
       path === '/api/register' || 
       path === '/api/logout' || 
-      DATA_API_HOSTS.includes(requestUrl.hostname) ||
-      requestUrl.hostname.includes('streamlit.app')) {
+      DATA_API_HOSTS.includes(requestUrl.hostname)) {
         
     return event.respondWith(
       // CORRIGIDO: cache: 'no-store' evita que o próprio cache HTTP nativo
@@ -112,6 +118,22 @@ self.addEventListener('fetch', event => {
         });
       })
     );
+  }
+
+  // --- ESTRATÉGIA 1.5: CACHE COM EXPIRAÇÃO DE 2 DIAS PARA OS EMBEDS DO STREAMLIT ---
+  // NOVO: antes, o embed (comparador de preços / busca automática) era
+  // NETWORK-ONLY com no-store — ou seja, toda vez que o site era fechado
+  // (mesmo por engano) e reaberto, o iframe baixava tudo de novo do zero,
+  // inclusive tendo que "acordar" o app do Streamlit. Agora, se já existir
+  // uma cópia salva com menos de 2 dias, ela é servida imediatamente
+  // (carregamento instantâneo), e a rede só é consultada em segundo plano
+  // para manter o cache atualizado. Isso não elimina 100% a necessidade de
+  // reconectar ao Streamlit (é um app de outra origem, o estado interno
+  // dele não pode ser lido/gravado por aqui), mas evita o reload "frio"
+  // completo enquanto o cache estiver dentro da janela de 2 dias.
+  if (requestUrl.hostname.includes('streamlit.app')) {
+    event.respondWith(handleStreamlitEmbedRequest(event.request));
+    return;
   }
 
   // --- ESTRATÉGIA 2: STALE-WHILE-REVALIDATE (SWR) ---
@@ -172,10 +194,67 @@ self.addEventListener('fetch', event => {
   );
 });
 
+// Trata as requisições dos iframes do Streamlit com uma janela de cache de
+// 2 dias. A "idade" de cada resposta é guardada num header customizado
+// (sw-cached-at) porque a Cache API não expõe isso nativamente.
+async function handleStreamlitEmbedRequest(request) {
+  const cache = await caches.open(STREAMLIT_CACHE_NAME);
+  const cached = await cache.match(request);
+
+  if (cached) {
+    const cachedAt = parseInt(cached.headers.get('sw-cached-at') || '0', 10);
+    const age = Date.now() - cachedAt;
+
+    if (age < STREAMLIT_CACHE_MAX_AGE_MS) {
+      // Ainda dentro da janela de 2 dias: serve o cache na hora (sem
+      // esperar a rede) e revalida em segundo plano, sem bloquear a UI.
+      fetch(request).then(networkResponse => {
+        if (networkResponse && networkResponse.ok) {
+          cacheStreamlitResponse(cache, request, networkResponse);
+        }
+      }).catch(() => {
+        // Sem internet: fica valendo o que já está em cache mesmo.
+      });
+      return cached;
+    }
+  }
+
+  // Cache expirado (>2 dias) ou inexistente: busca da rede.
+  try {
+    const networkResponse = await fetch(request);
+    if (networkResponse && networkResponse.ok) {
+      cacheStreamlitResponse(cache, request, networkResponse.clone());
+    }
+    return networkResponse;
+  } catch (error) {
+    console.log('[SW] Embed Streamlit offline/falhou. Usando cache expirado como fallback, se houver.', error);
+    if (cached) return cached;
+    return new Response('', { status: 503, statusText: 'Service Unavailable (Offline)' });
+  }
+}
+
+// Salva a resposta do embed no cache com um timestamp próprio, usado para
+// calcular a expiração de 2 dias em handleStreamlitEmbedRequest().
+async function cacheStreamlitResponse(cache, request, response) {
+  try {
+    const headers = new Headers(response.headers);
+    headers.set('sw-cached-at', Date.now().toString());
+    const body = await response.blob();
+    const timestampedResponse = new Response(body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers
+    });
+    await cache.put(request, timestampedResponse);
+  } catch (error) {
+    console.log('[SW] Falha ao salvar embed do Streamlit no cache.', error);
+  }
+}
+
 // Evento de Ativação: Limpa caches antigos
 self.addEventListener('activate', event => {
   console.log('[SW] Ativando novo cache e limpando versões antigas.');
-  var cacheWhitelist = [CACHE_NAME];
+  var cacheWhitelist = [CACHE_NAME, STREAMLIT_CACHE_NAME];
   event.waitUntil(
     Promise.all([
       caches.keys().then(cacheNames => {
