@@ -571,7 +571,7 @@
 
     <div id="auth-container">
         <div class="auth-box">
-            <h2><i class="fas fa-lock"></i> Acesso Secure</h2>
+            <h2><i class="fas fa-lock"></i> Acesso Seguro</h2>
             <input type="text" id="username" class="auth-input" placeholder="Nome de usuário" autocomplete="username">
             <div class="password-container">
                 <input type="password" id="password" class="auth-input" placeholder="Senha" autocomplete="current-password">
@@ -777,7 +777,8 @@
                 }
                 await loadList();
             })();
-            startPolling(); // Inicia a verificação contínua por atualizações
+            // Polling automático desativado a pedido: atualização é manual (recarregar a página).
+            // startPolling();
         }
 
         function showAuth(message = '', isError = false) {
@@ -2010,7 +2011,8 @@
             await syncOfflineChanges(); 
             // Em seguida, carrega a lista (que será a mesclada se a sincronização ocorrer)
             await loadList(); 
-            startPolling(); // Reinicia o polling ao ficar online
+            // Polling automático desativado a pedido: atualização é manual (recarregar a página).
+            // startPolling();
         });
         window.addEventListener('offline', () => {
             isOnline = false;
