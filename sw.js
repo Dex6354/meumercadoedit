@@ -1,4 +1,4 @@
-const CACHE_NAME = 'meu-mercado-cache-v3';
+const CACHE_NAME = 'meu-mercado-cache-v4';
 
 // Host do Worker que serve a API de dados (lista de compras) e a API de
 // itens/autocomplete (Lista de Itens). Requisições para este host NUNCA
@@ -48,6 +48,38 @@ self.addEventListener('install', event => {
 self.addEventListener('fetch', event => {
   const requestUrl = new URL(event.request.url);
   const path = requestUrl.pathname;
+
+  // --- ESTRATÉGIA 0: NETWORK-FIRST PARA O APP SHELL (HTML) ---
+  // CORRIGIDO (causa raiz do bug "itens somem offline"): antes, index.html/
+  // itens.html caíam na Estratégia 3 (cache-first) junto com os outros
+  // ativos estáticos. Como o CACHE_NAME só muda quando alguém lembra de
+  // incrementá-lo manualmente, um SW já instalado ficava servindo para
+  // sempre a MESMA versão antiga do index.html (e do JS embutido nele) —
+  // mesmo com o dispositivo online e mesmo depois de o HTML já ter sido
+  // corrigido no servidor. Ou seja: o app parecia ter "perdido" a lógica de
+  // fallback offline (localStorage) porque, na prática, o usuário nunca
+  // chegava a rodar o JS novo que contém essa lógica.
+  // Agora: sempre que houver rede, busca a versão mais recente do HTML e
+  // atualiza o cache. Só usa o cache (versão antiga) se a rede falhar,
+  // que é exatamente o caso de estar offline.
+  if (event.request.mode === 'navigate' ||
+      path === '/' ||
+      path.endsWith('index.html') ||
+      path.endsWith('itens.html')) {
+    event.respondWith(
+      fetch(event.request).then(networkResponse => {
+        if (networkResponse && networkResponse.ok) {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseToCache));
+        }
+        return networkResponse;
+      }).catch(() => {
+        console.log('[SW] App shell offline. Servindo versão em cache.');
+        return caches.match(event.request).then(cached => cached || caches.match('index.html'));
+      })
+    );
+    return;
+  }
 
   // --- ESTRATÉGIA 1: NETWORK-ONLY ---
   // Para a API de dados do USUÁRIO (login, logout, lista pessoal), o Worker
