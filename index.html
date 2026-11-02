@@ -33,10 +33,7 @@
 
 
     <link rel="icon" href="01.png" type="image/png">
-    <!-- OTIMIZAÇÃO: CSS dos ícones não bloqueia mais a primeira renderização.
-         Antes, se o arquivo não estivesse no cache do Service Worker e o
-         aparelho estivesse sem internet, a tela inteira ficava esperando a
-         requisição falhar/expirar antes de aparecer. -->
+    <!-- OTIMIZAÇÃO: CSS dos ícones não bloqueia mais a primeira renderização -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"></noscript>
 
@@ -770,42 +767,6 @@
         // --- CONSTANTE DA API DO GERENCIADOR DE PREÇOS FIXOS (Tab 3) ---
         const MANAGER_WORKER_URL = 'https://meumercado-api.qiitomnhhh.workers.dev';
 
-        // --- OTIMIZAÇÃO: fetch com timeout ---
-        // Em smartwatch é comum o aparelho estar "conectado" (navigator.onLine
-        // = true) sem ter internet de verdade. Sem timeout, o fetch ficava
-        // pendurado por muito tempo e a lista demorava a aparecer. Agora a
-        // rede tem um prazo curto; passou dele, usamos os dados locais.
-        const NET_TIMEOUT_MS = 4000;       // leituras (GET)
-        const NET_WRITE_TIMEOUT_MS = 8000; // gravações (POST)
-        function fetchWithTimeout(url, options = {}, ms = NET_TIMEOUT_MS) {
-            const controller = new AbortController();
-            const timer = setTimeout(() => controller.abort(), ms);
-            return fetch(url, { ...options, signal: controller.signal })
-                .finally(() => clearTimeout(timer));
-        }
-
-        // --- OTIMIZAÇÃO: iframes do Streamlit sob demanda ---
-        // Antes os dois iframes começavam a carregar junto com a página (mesmo
-        // o da aba escondida), disputando rede e atrasando tudo — e, offline,
-        // ficavam tentando conectar. Agora só carregam quando necessário.
-        function ensureStreamlitLoaded(iframeId) {
-            const iframe = document.getElementById(iframeId);
-            if (!iframe || iframe.src || !iframe.dataset.src) return; // já carregado
-            const isFirst = iframeId === 'streamlit-app';
-            const overlay = document.getElementById(isFirst ? 'iframe-overlay' : 'iframe-overlay-2');
-            if (!navigator.onLine) {
-                if (overlay) {
-                    overlay.style.display = 'flex';
-                    const loader = overlay.querySelector('.loader');
-                    const label = overlay.querySelector('span');
-                    if (loader) loader.style.display = 'none';
-                    if (label) label.textContent = 'Sem conexão. Conecte-se e toque em "Ativar / Atualizar".';
-                }
-                return;
-            }
-            iframe.src = iframe.dataset.src;
-        }
-
         // --- GERENCIAMENTO DE AUTENTICAÇÃO ---
         const authContainer = document.getElementById('auth-container');
         const appContainer = document.getElementById('app-container');
@@ -845,10 +806,6 @@
             // em "offline" (azul/roxo) até minimizar/voltar (o que força o
             // navegador a re-emitir 'online'). Agora, se já estiver online,
             // tentamos sincronizar essas pendências assim que o app abre.
-            // OTIMIZAÇÃO: desenha a lista salva no aparelho NA HORA, antes de
-            // qualquer chamada de rede. Assim o app abre instantâneo mesmo
-            // sem internet; a sincronização acontece em seguida.
-            paintFromLocalCache();
             (async () => {
                 if (isOnline) {
                     await syncOfflineChanges();
@@ -857,22 +814,6 @@
             })();
             // Polling automático desativado a pedido: atualização é manual (recarregar a página).
             // startPolling();
-        }
-
-        function paintFromLocalCache() {
-            const username = localStorage.getItem('currentUser');
-            if (!username) return false;
-            try {
-                const pending = JSON.parse(localStorage.getItem(`offlineList_${username}`));
-                const cached = pending || JSON.parse(localStorage.getItem(`shoppingList_${username}`));
-                if (cached) {
-                    redrawTable(cached, false);
-                    return true;
-                }
-            } catch (e) {
-                console.log('Cache local ilegível, aguardando a rede.', e);
-            }
-            return false;
         }
 
         function showAuth(message = '', isError = false) {
@@ -981,13 +922,33 @@
             wrapper.classList.toggle('collapsed');
         }
 
+        // OTIMIZAÇÃO: os iframes do Streamlit só carregam quando há internet e a
+        // aba correspondente está visível. Offline, não tentam carregar (isso
+        // atrasava a abertura do app no smartwatch).
+        function loadEmbedIfNeeded(iframeId) {
+            const el = document.getElementById(iframeId);
+            if (!el || el.src || !el.dataset.src) return;
+            if (!navigator.onLine) return;
+            const overlayId = iframeId === 'streamlit-app' ? 'iframe-overlay' : 'iframe-overlay-2';
+            const overlay = document.getElementById(overlayId);
+            if (overlay) overlay.style.display = 'flex';
+            el.onload = () => { if (overlay) overlay.style.display = 'none'; };
+            el.src = el.dataset.src;
+        }
+
+        function loadActiveEmbed() {
+            const active = document.querySelector('.tab-panel.active');
+            if (!active) return;
+            if (active.id === 'tab-comparador') loadEmbedIfNeeded('streamlit-app');
+            else if (active.id === 'tab-busca') loadEmbedIfNeeded('streamlit-app-2');
+        }
+
         function switchTab(tabId, btn) {
             document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
             btn.classList.add('active');
-            if (tabId === 'tab-comparador') ensureStreamlitLoaded('streamlit-app');
-            if (tabId === 'tab-busca') ensureStreamlitLoaded('streamlit-app-2');
+            loadActiveEmbed();
             if (tabId === 'tab-itens') {
                 renderItensTab('');
                 const si = document.getElementById('itens-search-input');
@@ -1428,20 +1389,12 @@
             const cachedList = localStorage.getItem('itensList_cache');
             const savedAt = parseInt(localStorage.getItem('itensList_saved_at') || '0');
             const GRACE_MS = 60000; // 60 segundos de janela de proteção
-
-            // OTIMIZAÇÃO: o autocomplete já nasce com a lista salva no aparelho,
-            // sem esperar a rede (que pode demorar/falhar quando offline).
-            if (cachedList) {
-                try {
-                    itensList = JSON.parse(cachedList);
-                    popularSelectItemManager();
-                } catch (e) { itensList = []; }
-            }
-
             if (cachedList && (Date.now() - savedAt) < GRACE_MS) {
+                itensList = JSON.parse(cachedList);
                 console.log(`Itens carregados do cache local (salvamento recente): ${itensList.length}`);
+                popularSelectItemManager();
                 // Busca do servidor em background para confirmar; atualiza cache se não houver nova edição pendente
-                fetchWithTimeout(WORKER_URL).then(r => r.ok ? r.json() : null).then(serverList => {
+                fetch(WORKER_URL).then(r => r.ok ? r.json() : null).then(serverList => {
                     if (serverList && (Date.now() - parseInt(localStorage.getItem('itensList_saved_at') || '0')) >= GRACE_MS) {
                         itensList = serverList;
                         localStorage.setItem('itensList_cache', JSON.stringify(itensList));
@@ -1451,11 +1404,18 @@
                 return;
             }
 
-            // Sem conexão: já estamos com o cache carregado acima, não precisa tentar a rede.
-            if (!isOnline && cachedList) return;
+            // OTIMIZAÇÃO: offline, usa o cache local direto, sem tentar a rede.
+            if (!navigator.onLine && cachedList) {
+                itensList = JSON.parse(cachedList);
+                console.log('Offline: itens carregados do cache local.');
+                return;
+            }
 
             try {
-                const response = await fetchWithTimeout(WORKER_URL);
+                const ctrl = new AbortController();
+                const t = setTimeout(() => ctrl.abort(), 8000);
+                const response = await fetch(WORKER_URL, { signal: ctrl.signal });
+                clearTimeout(t);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -1629,12 +1589,12 @@
             // 'syncing' já foi definido em saveList()
             // setSyncStatus('syncing'); 
             try {
-                const response = await fetchWithTimeout('/api/list', {
+                const response = await fetch('/api/list', {
                     method: 'POST',
                     headers: getAuthHeaders(),
                     // ATUALIZADO: Envia um objeto com 'items' e 'deletes'
                     body: JSON.stringify({ items: items, deletes: deletes })
-                }, NET_WRITE_TIMEOUT_MS);
+                });
                 if (response.status === 401) return handleLogout();
                 if (!response.ok) throw new Error('Falha ao salvar no servidor.');
 
@@ -1766,46 +1726,22 @@
 
             // Se não houver pendências, tenta sincronizar
             if (syncState !== 'offline') setSyncStatus('syncing');
-
-            // OTIMIZAÇÃO: mostra a lista do cache imediatamente e atualiza
-            // quando o servidor responder (ou desiste após o timeout).
-            const cachedRaw = localStorage.getItem(cacheKey);
-            let renderedFromCache = false;
-            if (cachedRaw) {
-                try {
-                    redrawTable(JSON.parse(cachedRaw));
-                    renderedFromCache = true;
-                } catch (e) { /* cache corrompido: espera a rede */ }
-            }
-
             try {
-                const response = await fetchWithTimeout('/api/list', { headers: getAuthHeaders() });
+                const response = await fetch('/api/list', { headers: getAuthHeaders() });
                 if (response.status === 401) return handleLogout();
                 if (!response.ok) throw new Error('Falha ao buscar dados.');
 
                 const remoteItems = await response.json();
-                const remoteRaw = JSON.stringify(remoteItems);
-                const changed = remoteRaw !== cachedRaw;
-                localStorage.setItem(cacheKey, remoteRaw);
-
-                // Só redesenha se a lista ainda não estava na tela, ou se o servidor
-                // trouxe algo diferente E o usuário não está digitando na tabela.
-                const activeEl = document.activeElement;
-                const isTyping = activeEl && ['INPUT', 'TEXTAREA'].includes(activeEl.tagName) &&
-                    tableBody.contains(activeEl) && !activeEl.closest('tr')?.classList.contains('add-item-row');
-                if (!renderedFromCache || (changed && !isTyping)) {
-                    redrawTable(remoteItems, true);
-                }
+                localStorage.setItem(cacheKey, JSON.stringify(remoteItems));
+                redrawTable(remoteItems, true);
                 // Só muda para 'saved' se não houver pendências offline
                 if (syncState !== 'offline') setSyncStatus('saved');
 
             } catch (error) {
                 console.error('Erro ao buscar lista online, usando cache como fallback:', error);
                 setSyncStatus('offline'); 
-                if (!renderedFromCache) {
-                    const cachedItems = JSON.parse(localStorage.getItem(cacheKey) || '[]');
-                    redrawTable(cachedItems);
-                }
+                const cachedItems = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+                redrawTable(cachedItems);
             }
         }
 
@@ -2138,6 +2074,7 @@
         // --- Eventos de Conexão ---
         window.addEventListener('online', async () => {
             isOnline = true;
+            loadActiveEmbed();
             // ATUALIZADO: Sincroniza primeiro as mudanças offline
             await syncOfflineChanges(); 
             // Em seguida, carrega a lista (que será a mesclada se a sincronização ocorrer)
@@ -2211,8 +2148,6 @@
             const iframeWrapper = document.getElementById('iframe-wrapper');
             const iframeOverlay = document.getElementById('iframe-overlay');
             iframeOverlay.style.display = 'flex';
-            const ld1 = iframeOverlay.querySelector('.loader'); if (ld1) ld1.style.display = '';
-            const lb1 = iframeOverlay.querySelector('span'); if (lb1) lb1.textContent = 'Acordando o comparador...';
             let streamlitIframe = document.getElementById('streamlit-app');
             if (streamlitIframe) streamlitIframe.remove();
             const newIframe = document.createElement('iframe');
@@ -2226,8 +2161,6 @@
             const iframeWrapper = document.getElementById('iframe-wrapper-2');
             const iframeOverlay = document.getElementById('iframe-overlay-2');
             iframeOverlay.style.display = 'flex';
-            const ld2 = iframeOverlay.querySelector('.loader'); if (ld2) ld2.style.display = '';
-            const lb2 = iframeOverlay.querySelector('span'); if (lb2) lb2.textContent = 'Acordando o comparador...';
             let streamlitIframe = document.getElementById('streamlit-app-2');
             if (streamlitIframe) streamlitIframe.remove();
             const newIframe = document.createElement('iframe');
@@ -2264,16 +2197,11 @@
                 showAuth();
             }
             setupVirtualKeyboardListener();
+            loadActiveEmbed();
 
             // carregarItens() roda em paralelo, sem bloquear a exibição da
             // tela — ela só alimenta o autocomplete da Lista de Itens.
             carregarItens();
-
-            // OTIMIZAÇÃO: o comparador (aba padrão) só começa a carregar depois
-            // que a lista já apareceu, e apenas se houver conexão.
-            const startComparador = () => ensureStreamlitLoaded('streamlit-app');
-            if ('requestIdleCallback' in window) requestIdleCallback(startComparador, { timeout: 1500 });
-            else setTimeout(startComparador, 400);
 
             // ATUALIZADO: Verifica pendências para definir o status inicial
             const username = localStorage.getItem('currentUser');
@@ -2295,7 +2223,7 @@
 
         // Service Worker Registration
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
+            const registerSW = () => {
             navigator.serviceWorker.register('./sw.js')
                 .then(registration => {
                 console.log('ServiceWorker registrado com sucesso: ', registration.scope);
@@ -2303,7 +2231,9 @@
                 .catch(error => {
                 console.log('Falha ao registrar o ServiceWorker: ', error);
                 });
-            });
+            };
+            if (document.readyState === 'complete') registerSW();
+            else window.addEventListener('load', registerSW);
         }
     </script>
 </body>
