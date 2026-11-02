@@ -9,6 +9,10 @@
   "orientation": "portrait",
   "background_color": "#212121",
   "theme_color": "#212121",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["shopping", "productivity"],
+  "prefer_related_applications": false,
   "description": "Sua lista de compras inteligente com comparador de preços e otimização.",
   "icons": [
     {
