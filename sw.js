@@ -1,4 +1,4 @@
-const CACHE_NAME = 'meu-mercado-cache-v6';
+const CACHE_NAME = 'meu-mercado-cache-v1';
 
 // Cache dedicado ao "shell" dos embeds do Streamlit (comparador de preços /
 // busca de preço automática). Fica separado do CACHE_NAME principal porque
@@ -18,6 +18,12 @@ const STREAMLIT_CACHE_MAX_AGE_MS = 2 * 24 * 60 * 60 * 1000; // 2 dias
 // antiga era servida para sempre, mesmo com o dispositivo online e mesmo
 // depois de o servidor já ter a versão atualizada.
 const DATA_API_HOSTS = ['meumercado-api.qiitomnhhh.workers.dev'];
+
+// Se a rede demorar mais que isso para entregar o HTML do app (conexão fraca,
+// comum em smartwatch), o app abre na hora com a cópia em cache em vez de ficar
+// esperando. A resposta da rede continua sendo baixada em segundo plano e
+// atualiza o cache para a próxima abertura.
+const SHELL_NETWORK_TIMEOUT_MS = 3000;
 const urlsToCache = [
   '/', 
   'index.html',
@@ -44,7 +50,18 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('[SW] Cache aberto. Adicionando ativos estáticos.');
-        return cache.addAll(urlsToCache);
+        // OTIMIZAÇÃO/ROBUSTEZ: antes era cache.addAll(), que é "tudo ou nada" —
+        // se UM arquivo falhasse (ex.: CDN fora do ar), nada era pré-cacheado.
+        // Agora cada arquivo é tratado individualmente, e os do próprio site
+        // são buscados com cache:'reload' para nunca guardar cópia velha do
+        // cache HTTP do navegador.
+        return Promise.all(urlsToCache.map(url => {
+          const isExternal = /^https?:\/\//.test(url);
+          const request = isExternal ? url : new Request(url, { cache: 'reload' });
+          return cache.add(request).catch(err => {
+            console.error('[SW] Falha ao pré-cachear:', url, err);
+          });
+        }));
       })
       .catch(err => {
         console.error('[SW] Falha ao adicionar URLs ao cache:', err);
@@ -56,6 +73,14 @@ self.addEventListener('install', event => {
 self.addEventListener('fetch', event => {
   const requestUrl = new URL(event.request.url);
   const path = requestUrl.pathname;
+
+  // --- PASSTHROUGH: CONTADOR DE ACESSOS (hits.sh) ---
+  // Sem respondWith(): o navegador resolve a requisição sozinho, sem passar
+  // por cache nem por nenhuma lógica do SW. O contador nunca atrasa nem
+  // interfere na abertura do app (e a resposta dele nunca é cacheada).
+  if (requestUrl.hostname === 'hits.sh' || requestUrl.hostname.endsWith('.hits.sh')) {
+    return;
+  }
 
   // --- ESTRATÉGIA 0: NETWORK-FIRST PARA O APP SHELL (HTML) ---
   // CORRIGIDO (causa raiz do bug "itens somem offline"): antes, index.html/
@@ -70,22 +95,20 @@ self.addEventListener('fetch', event => {
   // Agora: sempre que houver rede, busca a versão mais recente do HTML e
   // atualiza o cache. Só usa o cache (versão antiga) se a rede falhar,
   // que é exatamente o caso de estar offline.
-  if (event.request.mode === 'navigate' ||
+  // ATUALIZADO: só vale para o PRÓPRIO site (same-origin). Antes, o teste
+  // `path === '/'` também capturava as requisições à raiz do Worker de dados
+  // (DATA_API_HOSTS), que devem ser NETWORK-ONLY (Estratégia 1 abaixo).
+  // Também inclui o manifest.json, para que mudanças nele cheguem aos
+  // aparelhos já instalados (antes ele ficava preso no cache-first).
+  // NOVO: Navigation Preload + timeout (ver handleShellRequest) para abrir
+  // mais rápido, principalmente em aparelhos lentos ou com rede fraca.
+  if (requestUrl.origin === self.location.origin && (
+      event.request.mode === 'navigate' ||
       path === '/' ||
       path.endsWith('index.html') ||
-      path.endsWith('itens.html')) {
-    event.respondWith(
-      fetch(event.request).then(networkResponse => {
-        if (networkResponse && networkResponse.ok) {
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseToCache));
-        }
-        return networkResponse;
-      }).catch(() => {
-        console.log('[SW] App shell offline. Servindo versão em cache.');
-        return caches.match(event.request).then(cached => cached || caches.match('index.html'));
-      })
-    );
+      path.endsWith('itens.html') ||
+      path.endsWith('manifest.json'))) {
+    event.respondWith(handleShellRequest(event, path));
     return;
   }
 
@@ -195,6 +218,68 @@ self.addEventListener('fetch', event => {
   );
 });
 
+// NETWORK-FIRST do app shell, com duas otimizações de abertura:
+//  1) Navigation Preload: o navegador já dispara a requisição de rede em
+//     paralelo ao boot do Service Worker (que em aparelho lento leva um tempo
+//     perceptível); aqui só aproveitamos essa resposta (event.preloadResponse).
+//  2) Timeout: se existir cópia em cache e a rede demorar mais que
+//     SHELL_NETWORK_TIMEOUT_MS, abre com a cópia em cache na hora. A rede
+//     segue em segundo plano (waitUntil) e atualiza o cache.
+// Offline/falha de rede: mesmo comportamento de antes (cache, ou index.html).
+function handleShellRequest(event, path) {
+  const request = event.request;
+  const isHtml = request.mode === 'navigate' ||
+                 path === '/' ||
+                 path.endsWith('index.html') ||
+                 path.endsWith('itens.html');
+
+  // Dispara a rede imediatamente (antes de qualquer await).
+  const networkPromise = fetchShellFromNetwork(event);
+  event.waitUntil(networkPromise.catch(() => {}));
+
+  return (async () => {
+    const cache = await caches.open(CACHE_NAME);
+    const exactMatch = await cache.match(request);
+
+    try {
+      // Sem cópia em cache (primeiro acesso): só resta esperar a rede.
+      if (!exactMatch) return await networkPromise;
+
+      const TIMEOUT = Symbol('timeout');
+      const timer = new Promise(resolve => setTimeout(() => resolve(TIMEOUT), SHELL_NETWORK_TIMEOUT_MS));
+      const winner = await Promise.race([networkPromise, timer]);
+      if (winner === TIMEOUT) {
+        console.log('[SW] Rede lenta para o app shell. Abrindo com a versão em cache.');
+        return exactMatch;
+      }
+      return winner;
+    } catch (error) {
+      console.log('[SW] App shell offline. Servindo versão em cache.');
+      if (exactMatch) return exactMatch;
+      const fallback = isHtml ? await cache.match('index.html') : null;
+      return fallback || Response.error();
+    }
+  })();
+}
+
+async function fetchShellFromNetwork(event) {
+  let response = null;
+  try {
+    response = event.preloadResponse ? await event.preloadResponse : null;
+  } catch (e) {
+    response = null;
+  }
+  if (!response) response = await fetch(event.request);
+
+  if (response && response.ok) {
+    const copy = response.clone();
+    caches.open(CACHE_NAME)
+      .then(cache => cache.put(event.request, copy))
+      .catch(() => {});
+  }
+  return response;
+}
+
 // Trata as requisições dos iframes do Streamlit com uma janela de cache de
 // 2 dias. A "idade" de cada resposta é guardada num header customizado
 // (sw-cached-at) porque a Cache API não expõe isso nativamente.
@@ -267,6 +352,11 @@ self.addEventListener('activate', event => {
           })
         );
       }),
+      // NOVO: liga o Navigation Preload (suportado em Chromium/Android: Brave,
+      // Vivaldi etc.). Onde não houver suporte, simplesmente não faz nada.
+      (self.registration.navigationPreload
+        ? self.registration.navigationPreload.enable().catch(() => {})
+        : Promise.resolve()),
       // CORRIGIDO: assume o controle de todas as abas/páginas já abertas
       // imediatamente, sem esperar um novo reload. Junto com skipWaiting(),
       // isso garante que o dispositivo passe a rodar o SW novo (com a
