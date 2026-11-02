@@ -1,4 +1,4 @@
-const CACHE_NAME = 'meu-mercado-cache-v5';
+const CACHE_NAME = 'meu-mercado-cache-v6';
 
 // Cache dedicado ao "shell" dos embeds do Streamlit (comparador de preços /
 // busca de preço automática). Fica separado do CACHE_NAME principal porque
@@ -22,6 +22,7 @@ const urlsToCache = [
   '/', 
   'index.html',
   'itens.html',
+  'manifest.json',
   '01.png',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/webfonts/fa-brands-400.woff2',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/webfonts/fa-solid-900.woff2', 
