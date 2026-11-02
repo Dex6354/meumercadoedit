@@ -1,18 +1,4 @@
-// OTIMIZAÇÃO: versão incrementada (v1 -> v2) para o aparelho instalar o novo
-// SW, refazer o pré-cache de forma tolerante a falhas e limpar o cache antigo.
 const CACHE_NAME = 'meu-mercado-cache-v2';
-
-// Tempo máximo esperando a rede por um recurso que NÃO está em cache.
-// Evita que o app fique "pendurado" quando o aparelho acha que tem internet
-// (comum em smartwatch) mas na prática está offline.
-const NETWORK_TIMEOUT_MS = 3000;
-
-function fetchWithTimeout(request, options = {}, ms = NETWORK_TIMEOUT_MS) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), ms);
-  return fetch(request, { ...options, signal: controller.signal })
-    .finally(() => clearTimeout(timer));
-}
 
 // Cache dedicado ao "shell" dos embeds do Streamlit (comparador de preços /
 // busca de preço automática). Fica separado do CACHE_NAME principal porque
@@ -45,6 +31,40 @@ const urlsToCache = [
   'https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js'
 ];
 
+// OTIMIZAÇÃO (abertura offline no smartwatch): no relógio, o navegador muitas
+// vezes continua "achando" que há rede (Bluetooth/Wi-Fi sem internet real) e o
+// fetch() fica pendurado por muitos segundos antes de falhar. Por isso:
+//  1) se navigator.onLine já é false, nem tentamos a rede;
+//  2) se tentarmos, a rede tem um tempo máximo (timeout) antes de cair no cache.
+const SHELL_NETWORK_TIMEOUT_MS = 2000;
+const DATA_NETWORK_TIMEOUT_MS = 8000;
+
+function fetchWithTimeout(request, ms, options) {
+  return new Promise((resolve, reject) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => { controller.abort(); reject(new Error('timeout')); }, ms);
+    fetch(request, Object.assign({}, options || {}, { signal: controller.signal })).then(
+      res => { clearTimeout(timer); resolve(res); },
+      err => { clearTimeout(timer); reject(err); }
+    );
+  });
+}
+
+function offlineJsonResponse() {
+  return new Response(JSON.stringify({ error: 'Offline' }), {
+    status: 503,
+    statusText: 'Service Unavailable (Offline)',
+    headers: { 'Content-Type': 'application/json' }
+  });
+}
+
+async function matchShell(request) {
+  const cache = await caches.open(CACHE_NAME);
+  return (await cache.match(request, { ignoreSearch: true })) ||
+         (await cache.match('index.html')) ||
+         (await cache.match('/'));
+}
+
 // Evento de Instalação: Abre o cache e armazena os arquivos principais.
 self.addEventListener('install', event => {
   // CORRIGIDO: sem isso, um SW novo instalado fica em estado "waiting" até
@@ -54,21 +74,14 @@ self.addEventListener('install', event => {
   // preso na lógica de cache antiga (quebrada) para sempre. skipWaiting()
   // faz o novo SW assumir assim que instalado.
   self.skipWaiting();
-  // CORRIGIDO: cache.addAll() é "tudo ou nada" — se UM único arquivo falhar
-  // (ex.: um 'itens.html' que não existe mais, dando 404), NENHUM dos outros
-  // é salvo. Isso deixava o app sem o CSS dos ícones e outros ativos em
-  // cache e, offline, a abertura ficava esperando a rede falhar. Agora cada
-  // URL é salva individualmente; o que falhar é ignorado.
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       console.log('[SW] Cache aberto. Adicionando ativos estáticos.');
-      return Promise.allSettled(
-        urlsToCache.map(url =>
-          cache.add(url).catch(err => {
-            console.warn('[SW] Não foi possível pré-cachear:', url, err);
-          })
-        )
-      );
+      // Um a um: se um item externo falhar, os demais continuam cacheados
+      // (cache.addAll falha tudo se UM único item falhar).
+      return Promise.allSettled(urlsToCache.map(url =>
+        cache.add(url).catch(err => console.error('[SW] Falha ao cachear:', url, err))
+      ));
     })
   );
 });
@@ -78,22 +91,42 @@ self.addEventListener('fetch', event => {
   const requestUrl = new URL(event.request.url);
   const path = requestUrl.pathname;
 
-  // --- ESTRATÉGIA 0: STALE-WHILE-REVALIDATE PARA O APP SHELL (HTML) ---
-  // OTIMIZAÇÃO (abertura offline lenta): antes era NETWORK-FIRST sem prazo —
-  // ao abrir o app, o SW esperava a rede responder (ou falhar) ANTES de
-  // mostrar qualquer coisa. Offline "de verdade" costuma falhar rápido, mas
-  // com Wi-Fi/Bluetooth conectado sem internet (comum no smartwatch) o
-  // pedido ficava pendurado por muitos segundos.
-  // Agora: se existe cópia em cache, ela é servida NA HORA, e a versão nova
-  // é baixada em segundo plano para a próxima abertura. Isso continua
-  // resolvendo o bug antigo do HTML "congelado", porque o cache é
-  // atualizado a cada abertura com rede. Só quando NÃO há cache é que
-  // esperamos a rede (com prazo máximo).
+  // --- ESTRATÉGIA 0: NETWORK-FIRST PARA O APP SHELL (HTML) ---
+  // CORRIGIDO (causa raiz do bug "itens somem offline"): antes, index.html/
+  // itens.html caíam na Estratégia 3 (cache-first) junto com os outros
+  // ativos estáticos. Como o CACHE_NAME só muda quando alguém lembra de
+  // incrementá-lo manualmente, um SW já instalado ficava servindo para
+  // sempre a MESMA versão antiga do index.html (e do JS embutido nele) —
+  // mesmo com o dispositivo online e mesmo depois de o HTML já ter sido
+  // corrigido no servidor. Ou seja: o app parecia ter "perdido" a lógica de
+  // fallback offline (localStorage) porque, na prática, o usuário nunca
+  // chegava a rodar o JS novo que contém essa lógica.
+  // Agora: sempre que houver rede, busca a versão mais recente do HTML e
+  // atualiza o cache. Só usa o cache (versão antiga) se a rede falhar,
+  // que é exatamente o caso de estar offline.
   if (event.request.mode === 'navigate' ||
       path === '/' ||
       path.endsWith('index.html') ||
       path.endsWith('itens.html')) {
-    event.respondWith(handleShellRequest(event));
+    event.respondWith((async () => {
+      // Offline declarado: abre direto do cache, sem esperar a rede falhar.
+      if (self.navigator && self.navigator.onLine === false) {
+        const cached = await matchShell(event.request);
+        if (cached) return cached;
+      }
+      try {
+        const networkResponse = await fetchWithTimeout(event.request, SHELL_NETWORK_TIMEOUT_MS);
+        if (networkResponse && networkResponse.ok) {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseToCache));
+        }
+        return networkResponse;
+      } catch (e) {
+        console.log('[SW] App shell offline/lento. Servindo versão em cache.');
+        const cached = await matchShell(event.request);
+        return cached || new Response('Offline', { status: 503 });
+      }
+    })());
     return;
   }
 
@@ -113,23 +146,17 @@ self.addEventListener('fetch', event => {
       path === '/api/logout' || 
       DATA_API_HOSTS.includes(requestUrl.hostname)) {
         
-    return event.respondWith(
-      // CORRIGIDO: cache: 'no-store' evita que o próprio cache HTTP nativo
-      // do navegador (independente do Service Worker) reutilize uma
-      // resposta antiga para esse GET.
-      (navigator.onLine === false
-        ? Promise.reject(new Error('offline'))
-        : fetch(event.request, { cache: 'no-store' })
-      ).catch(error => {
-        console.log(`[SW] API/iFrame falhou (Offline). Deixando o código JS usar o localStorage.`, error);
-        // Retorna uma resposta de erro padrão para a rede
-        return new Response(JSON.stringify({ error: 'Offline' }), {
-          status: 503,
-          statusText: 'Service Unavailable (Offline)',
-          headers: { 'Content-Type': 'application/json' }
-        });
-      })
-    );
+    return event.respondWith((async () => {
+      // Offline declarado: responde erro na hora (o JS usa o localStorage).
+      if (self.navigator && self.navigator.onLine === false) return offlineJsonResponse();
+      try {
+        // cache: 'no-store' evita o cache HTTP nativo reutilizar resposta antiga.
+        return await fetchWithTimeout(event.request, DATA_NETWORK_TIMEOUT_MS, { cache: 'no-store' });
+      } catch (error) {
+        console.log('[SW] API falhou/lenta. Deixando o código JS usar o localStorage.', error);
+        return offlineJsonResponse();
+      }
+    })());
   }
 
   // --- ESTRATÉGIA 1.5: CACHE COM EXPIRAÇÃO DE 2 DIAS PARA OS EMBEDS DO STREAMLIT ---
@@ -185,20 +212,13 @@ self.addEventListener('fetch', event => {
           return response; // Retorna do cache se encontrado.
         }
         
-        // Se não estiver no cache, busca na rede (com prazo) e armazena.
-        if (navigator.onLine === false) {
-          return new Response('', { status: 504, statusText: 'Offline' });
+        // Se não estiver no cache, busca na rede e armazena.
+        if (self.navigator && self.navigator.onLine === false) {
+          return new Response('', { status: 503, statusText: 'Service Unavailable (Offline)' });
         }
-        return fetchWithTimeout(event.request).then(
+        return fetch(event.request).then(
           (response) => {
-            // 'opaque' (status 0) também é guardado: é o caso do <link
-            // rel="stylesheet"> de outra origem (Font Awesome), que antes
-            // nunca entrava no cache e travava a abertura offline.
-            const cacheable = response && (
-              (response.status === 200 && (response.type === 'basic' || response.type === 'cors')) ||
-              response.type === 'opaque'
-            );
-            if (!cacheable) {
+            if(!response || response.status !== 200 || (response.type !== 'basic' && response.type !== 'cors')) {
               return response;
             }
 
@@ -211,44 +231,10 @@ self.addEventListener('fetch', event => {
 
             return response;
           }
-        ).catch(() => new Response('', { status: 504, statusText: 'Offline' }));
+        );
       })
   );
 });
-
-// Serve o HTML do app do cache imediatamente e atualiza em segundo plano.
-async function handleShellRequest(event) {
-  const request = event.request;
-  const cache = await caches.open(CACHE_NAME);
-
-  // ignoreSearch: o app instalado pode abrir com "?..." na URL; mesmo assim
-  // usamos a cópia salva.
-  let cached = await cache.match(request, { ignoreSearch: true });
-  if (!cached) cached = await cache.match('index.html') || await cache.match('/');
-
-  const updateFromNetwork = fetchWithTimeout(request, {}, 8000)
-    .then(networkResponse => {
-      if (networkResponse && networkResponse.ok) {
-        cache.put(request, networkResponse.clone());
-      }
-      return networkResponse;
-    })
-    .catch(() => null);
-
-  if (cached) {
-    // Mantém o SW vivo até terminar a atualização em segundo plano.
-    event.waitUntil(updateFromNetwork);
-    return cached;
-  }
-
-  // Primeira visita (sem cache): precisa esperar a rede.
-  const networkResponse = await updateFromNetwork;
-  return networkResponse || new Response('Sem conexão e sem cópia salva do app.', {
-    status: 503,
-    statusText: 'Service Unavailable (Offline)',
-    headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-  });
-}
 
 // Trata as requisições dos iframes do Streamlit com uma janela de cache de
 // 2 dias. A "idade" de cada resposta é guardada num header customizado
@@ -275,10 +261,15 @@ async function handleStreamlitEmbedRequest(request) {
     }
   }
 
+  // Offline declarado: não espera a rede; usa cache expirado se houver.
+  if (self.navigator && self.navigator.onLine === false) {
+    if (cached) return cached;
+    return new Response('', { status: 503, statusText: 'Service Unavailable (Offline)' });
+  }
+
   // Cache expirado (>2 dias) ou inexistente: busca da rede.
   try {
-    if (navigator.onLine === false) throw new Error('offline');
-    const networkResponse = await fetch(request);
+    const networkResponse = await fetchWithTimeout(request, 10000);
     if (networkResponse && networkResponse.ok) {
       cacheStreamlitResponse(cache, request, networkResponse.clone());
     }
