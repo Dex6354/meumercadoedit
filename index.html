@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Meu Mercado</title>
 
+    <!-- OTIMIZAÇÃO: fundo escuro já no primeiro frame (mesma cor do --bg-color e
+         do background_color do manifest), evitando qualquer flash branco
+         enquanto o resto do CSS é processado. -->
+    <style>html{background-color:#212121}</style>
+
     <!-- PWA: vincula o manifest (sem isso o Android não instala como app de verdade
          e continua mostrando a barra do navegador) -->
     <link rel="manifest" href="manifest.json">
@@ -33,7 +38,16 @@
 
 
     <link rel="icon" href="01.png" type="image/png">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- OTIMIZAÇÃO: o Font Awesome deixou de ser um <link rel="stylesheet"> (que
+         bloqueia a renderização e o início do script até terminar de baixar).
+         Agora é carregado via preload e aplicado assim que chega, sem travar o
+         primeiro paint. A fonte dos ícones também é pré-carregada em paralelo,
+         para os ícones aparecerem logo depois do texto. O <noscript> mantém o
+         comportamento antigo caso o JS esteja desativado. -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="font" type="font/woff2" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/webfonts/fa-solid-900.woff2" crossorigin>
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"></noscript>
 
     <style>
         :root {
@@ -692,7 +706,7 @@
                                 <div class="loader"></div>
                                 <span>Acordando o comparador...</span>
                             </div>
-                            <iframe id="streamlit-app" src="https://precosmercados.streamlit.app/?embed=true&minimal=true"></iframe>
+                            <iframe id="streamlit-app" data-src="https://precosmercados.streamlit.app/?embed=true&minimal=true"></iframe>
                         </div>
                         <div class="button-group" style="margin-top: 16px;">
                             <button class="custom-btn" onclick="wakeUpApp()" style="flex-grow: 1;">
@@ -710,7 +724,7 @@
                                 <div class="loader"></div>
                                 <span>Acordando o comparador...</span>
                             </div>
-                            <iframe id="streamlit-app-2" src="https://buscaprecoauto.streamlit.app/?embed=true&minimal=true"></iframe>
+                            <iframe id="streamlit-app-2" data-src="https://buscaprecoauto.streamlit.app/?embed=true&minimal=true"></iframe>
                         </div>
                         <div class="button-group" style="margin-top: 16px;">
                             <button class="custom-btn" onclick="wakeUpApp2()" style="flex-grow: 1;">
@@ -804,12 +818,19 @@
             // em "offline" (azul/roxo) até minimizar/voltar (o que força o
             // navegador a re-emitir 'online'). Agora, se já estiver online,
             // tentamos sincronizar essas pendências assim que o app abre.
+            // OTIMIZAÇÃO (carregamento progressivo): a lista salva no aparelho é
+            // desenhada IMEDIATAMENTE, de forma síncrona, sem esperar nenhuma
+            // requisição. A rede só confirma/atualiza em seguida.
+            const paintedFromCache = paintFromLocalCache();
             (async () => {
                 if (isOnline) {
                     await syncOfflineChanges();
                 }
-                await loadList();
+                await loadList(paintedFromCache);
             })();
+            // Os embeds do Streamlit são pesados: começam a carregar só depois
+            // que a página terminou de abrir e o navegador está ocioso.
+            scheduleEmbeds();
             // Polling automático desativado a pedido: atualização é manual (recarregar a página).
             // startPolling();
         }
@@ -1029,7 +1050,7 @@
             }
 
             document.getElementById('itens-modal-overlay').classList.add('open');
-            setTimeout(() => input.focus(), 100);
+            input.focus();
         }
 
         function fecharModalItem() {
@@ -1380,6 +1401,15 @@
                 return;
             }
 
+            // OTIMIZAÇÃO (carregamento progressivo): o autocomplete/lista de itens
+            // já nasce com o cache salvo; a rede apenas atualiza depois.
+            if (cachedList && itensList.length === 0) {
+                try {
+                    itensList = JSON.parse(cachedList);
+                    popularSelectItemManager();
+                } catch (e) { itensList = []; }
+            }
+
             try {
                 const response = await fetch(WORKER_URL);
                 if (!response.ok) {
@@ -1517,6 +1547,7 @@
 
         // --- LÓGICA DE SINCRONIZAÇÃO E CACHE OFFLINE ---
         async function saveList() {
+            _userEditedSincePaint = true;
             const items = getCurrentLocalItems();
             const username = localStorage.getItem('currentUser');
             if (!username) return;
@@ -1621,6 +1652,102 @@
             }
         }
 
+        // --- OTIMIZAÇÕES DE ABERTURA (exibição progressiva) ---
+        // Vira true se o usuário alterar a lista depois que ela foi desenhada a
+        // partir do cache local. Nesse caso a resposta da rede NÃO sobrescreve a
+        // tela (o save em andamento já traz a lista autoritativa do servidor).
+        let _userEditedSincePaint = false;
+        tableBody.addEventListener('input', (event) => {
+            const row = event.target.closest && event.target.closest('tr');
+            if (row && !row.classList.contains('add-item-row')) _userEditedSincePaint = true;
+        }, true);
+
+        // Executa fn quando o navegador estiver ocioso (com limite de tempo);
+        // em navegadores sem requestIdleCallback usa um timeout curto.
+        function scheduleIdle(fn, timeoutMs) {
+            if ('requestIdleCallback' in window) {
+                requestIdleCallback(fn, { timeout: timeoutMs });
+            } else {
+                setTimeout(fn, Math.min(timeoutMs, 300));
+            }
+        }
+
+        // Executa fn logo depois do primeiro frame pintado, sem atrasar o paint.
+        function afterFirstPaint(fn) {
+            requestAnimationFrame(() => setTimeout(fn, 0));
+        }
+
+        // Desenha a lista a partir do localStorage (pendências offline têm
+        // prioridade, igual ao loadList). Retorna true se desenhou algo.
+        function paintFromLocalCache() {
+            const username = localStorage.getItem('currentUser');
+            if (!username) return false;
+            try {
+                const raw = localStorage.getItem(`offlineList_${username}`)
+                         || localStorage.getItem(`shoppingList_${username}`);
+                if (!raw) return false;
+                const items = JSON.parse(raw);
+                if (!Array.isArray(items)) return false;
+                _userEditedSincePaint = false;
+                redrawTable(items);
+                return true;
+            } catch (e) {
+                console.error('Falha ao exibir a lista salva localmente:', e);
+                return false;
+            }
+        }
+
+        // Aplica na tela a lista vinda do servidor depois de uma exibição
+        // progressiva, sem perder o que o usuário estiver digitando.
+        function redrawFromRemote(items) {
+            const activeEl = document.activeElement;
+            const activeRow = activeEl && activeEl.closest ? activeEl.closest('tr') : null;
+            const typingInExistingRow = activeEl &&
+                ['INPUT', 'TEXTAREA'].includes(activeEl.tagName) &&
+                tableBody.contains(activeEl) &&
+                activeRow && !activeRow.classList.contains('add-item-row');
+            if (typingInExistingRow) return; // o cache local já foi atualizado
+
+            const hadFocus = !!activeEl && activeEl.id === 'newItemName';
+            const addRow = document.querySelector('.add-item-row');
+            const pendingName = document.getElementById('newItemName')?.value || '';
+            const pendingShib = addRow?.cells[2]?.querySelector('input')?.value || '';
+            const pendingNag  = addRow?.cells[3]?.querySelector('input')?.value || '';
+
+            redrawTable(items, false);
+
+            const ni = document.getElementById('newItemName');
+            if (ni && pendingName) {
+                ni.value = pendingName;
+                autoResizeTextarea(ni);
+                const newAddRow = document.querySelector('.add-item-row');
+                if (newAddRow) {
+                    if (pendingShib) newAddRow.cells[2].querySelector('input').value = pendingShib;
+                    if (pendingNag)  newAddRow.cells[3].querySelector('input').value = pendingNag;
+                }
+            }
+            if (ni && hadFocus) ni.focus();
+        }
+
+        // Embeds do Streamlit: a URL é a mesma de antes (agora em data-src), só
+        // começa a carregar quando a página já abriu e o aparelho está ocioso.
+        let _embedsScheduled = false;
+        function loadEmbedsDeferred() {
+            ['streamlit-app', 'streamlit-app-2'].forEach(id => {
+                const frame = document.getElementById(id);
+                if (frame && !frame.getAttribute('src') && frame.dataset.src) {
+                    frame.src = frame.dataset.src;
+                }
+            });
+        }
+        function scheduleEmbeds() {
+            if (_embedsScheduled) return;
+            _embedsScheduled = true;
+            const go = () => scheduleIdle(loadEmbedsDeferred, 3000);
+            if (document.readyState === 'complete') go();
+            else window.addEventListener('load', go, { once: true });
+        }
+
         // --- LÓGICA DE SINCRONIZAÇÃO DE ALTERAÇÕES OFFLINE (CORRIGIDO) ---
         async function syncOfflineChanges() {
             const username = localStorage.getItem('currentUser');
@@ -1659,7 +1786,7 @@
             }
         }
 
-        async function loadList() {
+        async function loadList(alreadyPainted = false) {
             const username = localStorage.getItem('currentUser');
             if (!username) return;
 
@@ -1669,9 +1796,11 @@
             const pendingDeletes = JSON.parse(localStorage.getItem(`pendingDeletes_${username}`) || '[]');
             const pendingOfflineItems = JSON.parse(localStorage.getItem(offlineKey));
 
+            // `alreadyPainted` = a lista salva localmente já está na tela
+            // (paintFromLocalCache), então não a desenhamos de novo.
             if (pendingOfflineItems) {
                 console.log("Carregando lista com alterações offline pendentes.");
-                redrawTable(pendingOfflineItems);
+                if (!alreadyPainted) redrawTable(pendingOfflineItems);
                 setSyncStatus('offline');
                 return;
             }
@@ -1685,8 +1814,10 @@
                 console.log("Offline. Carregando lista do cache.");
                 // Se já não estiver 'offline' por causa de 'pendingDeletes'
                 if (syncState !== 'offline') setSyncStatus('offline');
-                const cachedItems = JSON.parse(localStorage.getItem(cacheKey) || '[]');
-                redrawTable(cachedItems);
+                if (!alreadyPainted) {
+                    const cachedItems = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+                    redrawTable(cachedItems);
+                }
                 return;
             }
 
@@ -1698,16 +1829,27 @@
                 if (!response.ok) throw new Error('Falha ao buscar dados.');
 
                 const remoteItems = await response.json();
-                localStorage.setItem(cacheKey, JSON.stringify(remoteItems));
-                redrawTable(remoteItems, true);
+                const previousCache = localStorage.getItem(cacheKey);
+                const remoteJSON = JSON.stringify(remoteItems);
+                localStorage.setItem(cacheKey, remoteJSON);
+
+                if (!alreadyPainted) {
+                    redrawTable(remoteItems, true);
+                } else if (!_userEditedSincePaint && previousCache !== remoteJSON) {
+                    // Só redesenha se algo mudou no servidor e o usuário não
+                    // mexeu na lista enquanto a rede respondia.
+                    redrawFromRemote(remoteItems);
+                }
                 // Só muda para 'saved' se não houver pendências offline
                 if (syncState !== 'offline') setSyncStatus('saved');
 
             } catch (error) {
                 console.error('Erro ao buscar lista online, usando cache como fallback:', error);
                 setSyncStatus('offline'); 
-                const cachedItems = JSON.parse(localStorage.getItem(cacheKey) || '[]');
-                redrawTable(cachedItems);
+                if (!alreadyPainted) {
+                    const cachedItems = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+                    redrawTable(cachedItems);
+                }
             }
         }
 
@@ -2163,9 +2305,10 @@
             }
             setupVirtualKeyboardListener();
 
-            // carregarItens() roda em paralelo, sem bloquear a exibição da
-            // tela — ela só alimenta o autocomplete da Lista de Itens.
-            carregarItens();
+            // carregarItens() roda logo após o primeiro frame, sem competir com a
+            // exibição da lista nem com o /api/list — ela só alimenta o
+            // autocomplete da Lista de Itens (e já usa o cache local primeiro).
+            afterFirstPaint(carregarItens);
 
             // ATUALIZADO: Verifica pendências para definir o status inicial
             const username = localStorage.getItem('currentUser');
